@@ -231,8 +231,8 @@ def handle_add_command(
     shown_name = get_display_name(user_id, user_name, display_name)
     
     # 成功の場合はチャンネルに表示
-    # timestamp を yyyymmdd フォーマットに変更
-    ymd_str = datetime.now().strftime("%Y-%m-%d")
+    # 日付を y-m-d 形式に変換
+    ymd_str = datetime.fromisoformat(timestamp).strftime("%Y-%m-%d")
     return {
         "response_type": "in_channel",
         "text": f"{shown_name}さんが{ymd_str}に{amount}円のスーパーチャットを送りました！\n「{message}」{youtube_info}"

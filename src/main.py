@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import FastAPI, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional, Dict, Any, List
 import json
@@ -6,13 +6,17 @@ from datetime import datetime, timedelta
 import os
 
 from parser import parse_superchat_command, validate_superchat_params, get_help_text
+from slack_verification import add_slack_verification_middleware
 
 # FastAPIのインスタンス作成
 app = FastAPI(title="Slash Commands API", description="Slackのスラッシュコマンドを処理するAPI")
 
+# Slack検証ミドルウェアを追加
+add_slack_verification_middleware(app)
+
 # ファイルパス
-SUPERCHAT_DATA_FILE = "superchat_data.json"
-USER_DISPLAY_NAME_FILE = "user_display_names.json"
+SUPERCHAT_DATA_FILE = "./data/superchat_data.json"
+USER_DISPLAY_NAME_FILE = "./data/user_display_names.json"
 
 def load_superchat_data() -> List[Dict[str, Any]]:
     """

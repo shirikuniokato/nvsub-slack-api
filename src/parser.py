@@ -154,11 +154,11 @@ def get_help_text() -> str:
 スパチャコマンドの使用方法:
 
 1. スパチャの登録:
-   /superchat add <金額> [-m|--message <メッセージ>] [-y|--youtube <YouTubeチャンネル>] [-d|--date <日付>]
+   /superchat add <金額> [-m|--message <メッセージ>] [-y|--youtube <URL(証跡として残すくらい)>] [-d|--date <日付>]
    
    例:
    /superchat add 1000 -m こんにちは！
-   /superchat add 500 --message "長いメッセージもOK" --youtube https://youtube.com/channel/123
+   /superchat add 500 --message "長いメッセージもOK" --youtube https://youtube.com/watch?v=123456
    /superchat add 2000 --date 2025-04-13  # 特定の日付を指定（YYYY-MM-DD形式）
    
    注意:

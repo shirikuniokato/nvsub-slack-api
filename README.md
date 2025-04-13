@@ -203,8 +203,31 @@ Slack で以下のコマンドを使用できます：
 
 ## ファイル構成
 
-- `src/main.py`: FastAPI アプリケーションのメインファイル
+- `src/main.py`: エントリーポイント（FastAPI アプリケーションのインポート）
+- `src/app.py`: FastAPI アプリケーションの設定と初期化
 - `src/parser.py`: コマンドパーサー
 - `src/slack_verification.py`: Slack リクエスト検証ミドルウェア
+- `src/data/`: データ操作関連のモジュール
+  - `handlers.py`: データの読み込みと保存に関する関数
+  - `superchat_data.json.template`: スーパーチャットデータのテンプレート
+  - `user_display_names.json.template`: ユーザー表示名のテンプレート
+- `src/utils/`: ユーティリティ関数
+  - `display_name.py`: ユーザー表示名の取得関数
+- `src/commands/`: コマンド処理関連のモジュール
+  - `superchat.py`: スーパーチャットコマンドのエンドポイント
+  - `add_command.py`: add サブコマンドの処理
+  - `stat_command.py`: stat サブコマンドの処理
 - `nginx_config.conf`: Nginx の設定ファイル
 - `requirements.txt`: 必要な Python パッケージ
+- `.gitignore`: Git 管理から除外するファイルの設定
+
+## 初期セットアップ
+
+新しい環境でアプリケーションを実行する前に、データファイルのテンプレートをコピーしてください：
+
+```bash
+cp src/data/superchat_data.json.template src/data/superchat_data.json
+cp src/data/user_display_names.json.template src/data/user_display_names.json
+```
+
+これらのデータファイルは環境ごとに更新され、Git 管理されません。

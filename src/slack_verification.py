@@ -18,6 +18,13 @@ class SlackVerificationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Slackの署名検証が必要なパスのみ検証
         if request.url.path in ["/superchat", "/events"]:
+            # /events エンドポイントの場合のみ再送チェック
+            if request.url.path == "/events" and request.headers.get("X-Slack-Retry-Num"):
+                return JSONResponse(
+                    status_code=200,
+                    content={"message": "No need to resend"}
+                )
+                
             # リクエストヘッダーからSlackの署名と時間を取得
             slack_signature = request.headers.get("X-Slack-Signature")
             slack_timestamp = request.headers.get("X-Slack-Request-Timestamp")

@@ -1,6 +1,6 @@
 import os
 import requests
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 # SlackのAPIトークン（環境変数から取得）
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
@@ -46,6 +46,55 @@ def post_message(
     try:
         # APIリクエスト
         response = requests.post(url, headers=headers, json=data)
+        
+        # レスポンスのチェック
+        response.raise_for_status()
+        
+        # JSONレスポンスの解析
+        return response.json()
+    
+    except requests.exceptions.RequestException as e:
+        return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}
+    except ValueError as e:
+        return {"ok": False, "error": f"JSONパースエラー: {str(e)}"}
+    except Exception as e:
+        return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}
+
+def get_thread_messages(
+    channel: str,
+    thread_ts: str
+) -> Dict[str, Any]:
+    """
+    Slackのスレッドメッセージを取得する関数
+    
+    引数:
+        channel: チャンネルID
+        thread_ts: スレッドのタイムスタンプ
+    
+    戻り値:
+        Slackからのレスポンス（messagesキーにスレッドメッセージのリストが含まれる）
+    """
+    if not SLACK_BOT_TOKEN:
+        return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
+    
+    # APIエンドポイント
+    url = "https://slack.com/api/conversations.replies"
+    
+    # リクエストヘッダー
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+    }
+    
+    # リクエストパラメータ
+    params = {
+        "channel": channel,
+        "ts": thread_ts
+    }
+    
+    try:
+        # APIリクエスト
+        response = requests.get(url, headers=headers, params=params)
         
         # レスポンスのチェック
         response.raise_for_status()

@@ -5,7 +5,7 @@ import os
 import asyncio
 from data.handlers import get_character_by_id
 from utils.grok_api import call_grok_api
-from utils.slack_api import post_message
+from utils.slack_api import post_message, get_thread_messages
 
 # キャラクターのペルソナ設定
 DEFAULT_PERSONA = """### 文野環 ペルソナ
@@ -78,6 +78,7 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     戻り値:
         Slack応答フォーマットのJSON
     """
+
     # イベントタイプの確認
     if payload.get("type") == "url_verification":
         # URL検証チャレンジの応答
@@ -85,11 +86,11 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     
     # イベントの取得
     event = payload.get("event", {})
-    
+
     # メンションイベントでない場合は無視
     if event.get("type") != "app_mention":
         return {"ok": True}
-    
+
     # メッセージテキストからメンション部分を削除
     bot_user_id = payload.get("event", {}).get("bot_id") or payload.get("authorizations", [{}])[0].get("user_id", "")
     text = event.get("text", "").replace(f"<@{bot_user_id}>", "").strip()
@@ -126,8 +127,37 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
         character: キャラクター設定
     """
     try:
-        # Grok APIを呼び出して応答を生成
-        response_text = call_grok_api(text, character, DEFAULT_PERSONA)
+        # スレッドの会話履歴を取得
+        thread_response = get_thread_messages(channel, thread_ts)
+        
+        if not thread_response.get("ok"):
+            print(f"スレッド取得エラー: {thread_response.get('error')}")
+            thread_messages = []
+        else:
+            thread_messages = thread_response.get("messages", [])
+            print(f"スレッドメッセージ数: {len(thread_messages)}")
+        
+        # スレッドの会話履歴をコンテキストとして使用
+        conversation_context = ""
+        if thread_messages:
+            # 最大5件の過去メッセージを取得（最新のものから）
+            recent_messages = thread_messages[-5:] if len(thread_messages) > 5 else thread_messages
+            
+            for msg in recent_messages:
+                # ボットのメッセージかユーザーのメッセージかを判断
+                is_bot = msg.get("bot_id") is not None
+                msg_text = msg.get("text", "")
+                
+                if is_bot:
+                    conversation_context += f"文野環: {msg_text}\n"
+                else:
+                    conversation_context += f"ユーザー: {msg_text}\n"
+            
+            print("会話コンテキスト作成完了")
+        
+        # Grok APIを呼び出して応答を生成（会話履歴を含める）
+        prompt = f"{conversation_context}\nユーザー: {text}"
+        response_text = call_grok_api(prompt, character, DEFAULT_PERSONA)
         
         # Slackにメッセージを送信
         result = post_message(channel, response_text, thread_ts)
@@ -136,3 +166,5 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
             print(f"Slackメッセージ送信エラー: {result.get('error')}")
     except Exception as e:
         print(f"メッセージ処理エラー: {str(e)}")
+        import traceback
+        traceback.print_exc()

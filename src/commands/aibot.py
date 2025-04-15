@@ -3,69 +3,22 @@ from typing import Dict, Any, Optional
 import json
 import os
 import asyncio
+import time
 from data.handlers import get_character_by_id
-from utils.grok_api import call_grok_api
-from utils.slack_api import post_message, get_thread_messages
+from utils.grok_api import call_grok_api, call_grok_api_streaming
+from utils.slack_api import post_message, get_thread_messages, update_message, download_and_convert_image
 
-# キャラクターのペルソナ設定
-DEFAULT_PERSONA = """### 文野環 ペルソナ
-#### 基本情報
-- **名前**: 文野環 (ふみのたまき)
-- **所属**: にじさんじ所属のバーチャルライバー
-- **性別**: 女性
-- **特徴**: 元気で明るい、ポジティブな性格、笑顔が特徴的
-- **設定**: 「ふわふわ系元気印」、「ふわふわ系元気印ゲーマー」と自称
+# キャラクターのペルソナ設定ファイルのパス
+DEFAULT_PERSONA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "default_persona.txt")
 
-#### 口調と態度
-- **基本口調**: 元気で明るい口調、「〜だよ！」「〜だね！」などの語尾が特徴的。「〜なの」という語尾も使う。
-- **一人称**: 「たまき」「私」
-- **態度**: フレンドリーで親しみやすく、視聴者（リスナー）に対して「〜くん」「〜ちゃん」と呼びかけることが多い。
-
-#### よく使うセリフ・表現
-1. **挨拶・自己紹介**
-   - 「たまきだよ！よろしくね！」
-   - 「ふわふわ系元気印のたまきだよ！」
-
-2. **驚き・感動**
-   - 「えええ！？」
-   - 「すごーい！」
-   - 「やったー！」
-
-3. **困惑・焦り**
-   - 「えっと、えっと…」
-   - 「どうしよう、どうしよう…」
-   - 「たまき、わからないよ〜」
-
-4. **喜び・楽しさ**
-   - 「楽しいね！」
-   - 「たまき、嬉しい！」
-   - 「やったぁ！」
-
-5. **応援・励まし**
-   - 「頑張ろう！」
-   - 「大丈夫だよ！たまきと一緒に頑張ろう！」
-   - 「応援してるよ！」
-
-#### 対応の特徴
-- **親しみやすさ**: 誰に対しても親しみやすく接し、距離感が近い。
-- **ポジティブ思考**: どんな状況でもポジティブに考え、明るく対応する。
-- **素直な反応**: 感情表現が豊かで、喜怒哀楽をストレートに表現する。
-- **好奇心旺盛**: 新しいことに興味を持ち、積極的に挑戦する姿勢がある。
-
-#### 具体的な応答例
-1. **挨拶**
-   - 「こんにちは！たまきだよ！今日も元気に頑張ろうね！」
-
-2. **質問への回答**
-   - 「それはね、たまきが知ってるよ！（回答内容）…だよ！わかりやすかった？」
-
-3. **励まし**
-   - 「大丈夫だよ！たまきも応援してるから、一緒に頑張ろう！」
-
-4. **感謝**
-   - 「ありがとう！たまき、すっごく嬉しいよ！」
-
-以下の質問に対して、文野環として回答してください。"""
+# ペルソナ設定ファイルを読み込む関数
+def load_default_persona():
+    try:
+        with open(DEFAULT_PERSONA_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        print(f"ペルソナ設定ファイルの読み込みエラー: {str(e)}")
+        return "ペルソナ設定ファイルが読み込めませんでした。"
 
 async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
     """
@@ -95,6 +48,19 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     bot_user_id = payload.get("event", {}).get("bot_id") or payload.get("authorizations", [{}])[0].get("user_id", "")
     text = event.get("text", "").replace(f"<@{bot_user_id}>", "").strip()
     
+    # メンションのみのメッセージ（テキストが空）の場合は入力を促すメッセージを返す
+    if not text:
+        print("メンションのみのメッセージのため入力を促すメッセージを返します")
+        # 非同期でメッセージを送信
+        asyncio.create_task(
+            post_message(
+                event.get("channel"),
+                "何か質問はあるかしら？",
+                event.get("thread_ts") or event.get("ts")
+            )
+        )
+        return {"ok": True}
+    
     # チャンネルとスレッド情報の取得
     channel = event.get("channel")
     thread_ts = event.get("thread_ts") or event.get("ts")
@@ -102,21 +68,14 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     # ユーザー情報の取得
     user = event.get("user")
     
-    # キャラクター設定
-    character = {
-        "name": "文野環",
-        "personality": "元気で明るい、ポジティブな性格",
-        "speaking_style": "元気で明るい口調、「〜だよ！」「〜だね！」「〜なの」などの語尾が特徴的。一人称は「たまき」「私」。"
-    }
-    
     # 非同期でGrok APIを呼び出して応答を生成し、Slackに送信
     # イベントを受け取ったことを即座に応答
-    asyncio.create_task(process_and_reply(text, channel, thread_ts, character))
+    asyncio.create_task(process_and_reply(text, channel, thread_ts, None))
     
     # Slackイベントに対する応答（成功）
     return {"ok": True}
 
-async def process_and_reply(text: str, channel: str, thread_ts: str, character: Dict[str, str]):
+async def process_and_reply(text: str, channel: str, thread_ts: str, character: Optional[Dict[str, str]] = None):
     """
     メッセージを処理して返信する非同期関数
     
@@ -137,33 +96,174 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
             thread_messages = thread_response.get("messages", [])
             print(f"スレッドメッセージ数: {len(thread_messages)}")
         
-        # スレッドの会話履歴をコンテキストとして使用
-        conversation_context = ""
+        # スレッドの会話履歴を構造化されたフォーマットで構築
+        conversation_messages = []
+        
+        # システムメッセージを追加（キャラクター設定）
+        system_content = load_default_persona()
+        conversation_messages.append({
+            "role": "system",
+            "content": [{"type": "text", "text": system_content}]
+        })
+        
         if thread_messages:
-            # 最大5件の過去メッセージを取得（最新のものから）
-            recent_messages = thread_messages[-5:] if len(thread_messages) > 5 else thread_messages
-            
-            for msg in recent_messages:
+            for msg in thread_messages:
                 # ボットのメッセージかユーザーのメッセージかを判断
                 is_bot = msg.get("bot_id") is not None
                 msg_text = msg.get("text", "")
                 
-                if is_bot:
-                    conversation_context += f"文野環: {msg_text}\n"
-                else:
-                    conversation_context += f"ユーザー: {msg_text}\n"
+                # 「考え中...」や「... :neko1:」を含むメッセージはスキップ
+                if "考え中..." in msg_text or "... :neko1:" in msg_text or "...(続く)" in msg_text or "(続き " in msg_text:
+                    continue
+                
+                # メッセージの内容を構築
+                content_items = []
+                
+                # 画像が含まれているかチェック
+                if "files" in msg and msg["files"]:
+                    for file in msg["files"]:
+                        # 画像ファイルのみ処理
+                        if file.get("mimetype", "").startswith("image/"):
+                            # 画像URLを取得
+                            image_url = file.get("url_private")
+                            
+                            if image_url:
+                                print(f"画像を処理中: {image_url}")
+                                
+                                # 画像をダウンロードしてbase64に変換
+                                success, mime_type, base64_data = download_and_convert_image(image_url)
+                                
+                                if success:
+                                    # base64形式のURLを作成
+                                    data_url = f"data:{mime_type};base64,{base64_data}"
+                                    
+                                    # 画像をコンテンツに追加
+                                    content_items.append({
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": data_url,
+                                            "detail": "high"
+                                        }
+                                    })
+                                    print(f"画像の処理に成功しました: {file.get('name')}")
+                                else:
+                                    print(f"画像の処理に失敗しました: {base64_data}")
+                
+                # テキストをコンテンツに追加
+                if msg_text:
+                    content_items.append({
+                        "type": "text",
+                        "text": msg_text
+                    })
+                
+                # コンテンツが空でない場合のみメッセージを追加
+                if content_items:
+                    if is_bot:
+                        conversation_messages.append({
+                            "role": "assistant",
+                            "content": content_items
+                        })
+                    else:
+                        conversation_messages.append({
+                            "role": "user",
+                            "content": content_items
+                        })
             
-            print("会話コンテキスト作成完了")
+            print(f"構造化された会話コンテキスト作成完了: {len(conversation_messages)}メッセージ")
         
-        # Grok APIを呼び出して応答を生成（会話履歴を含める）
-        prompt = f"{conversation_context}\nユーザー: {text}"
-        response_text = call_grok_api(prompt, character, DEFAULT_PERSONA)
+        # 現在のユーザーメッセージを追加
+        # 現在のメッセージには画像が含まれていないと仮定
+        user_message = {
+            "role": "user",
+            "content": [{"type": "text", "text": text}]
+        }
         
-        # Slackにメッセージを送信
-        result = post_message(channel, response_text, thread_ts)
+        # 最初に「考え中...」というメッセージを送信
+        initial_message = "考え中..."
+        initial_result = post_message(channel, initial_message, thread_ts)
         
-        if not result.get("ok"):
-            print(f"Slackメッセージ送信エラー: {result.get('error')}")
+        if not initial_result.get("ok"):
+            print(f"初期メッセージ送信エラー: {initial_result.get('error')}")
+            return
+        
+        # 送信したメッセージのタイムスタンプを取得
+        message_ts = initial_result.get("ts")
+        
+        # 応答を蓄積する変数
+        full_response = ""
+        
+        # 更新間隔（秒）
+        update_interval = 1.0
+        last_update_time = 0
+        
+        # 現在のメッセージ番号
+        current_message_num = 1
+        
+        # 最大メッセージサイズ（バイト）
+        MAX_MESSAGE_SIZE = 3000
+        
+        # ストリーミングコールバック関数
+        def streaming_callback(chunk: str, is_done: bool):
+            nonlocal full_response, last_update_time, message_ts, current_message_num
+            
+            # 応答を蓄積
+            full_response += chunk
+            
+            # 現在の時間を取得
+            current_time = time.time()
+            
+            # 更新間隔を超えた場合、またはストリーミングが完了した場合にメッセージを更新
+            if is_done or (current_time - last_update_time >= update_interval):
+                # 表示用のテキストを作成
+                display_text = full_response
+                
+                # 入力中の場合は「... :pencil:」を追加
+                if not is_done:
+                    display_text += "... :neko1:"
+                
+                # メッセージサイズをチェック
+                if len(display_text.encode('utf-8')) > MAX_MESSAGE_SIZE:
+                    print(f"メッセージサイズが制限を超えました: {len(display_text.encode('utf-8'))} バイト")
+                    
+                    # 現在のメッセージを完了させる（続きを示す）
+                    update_result = update_message(channel, message_ts, full_response[:MAX_MESSAGE_SIZE-20] + "...(続く)")
+                    
+                    if not update_result.get("ok"):
+                        print(f"メッセージ更新エラー: {update_result.get('error')}")
+                    
+                    # 新しいメッセージを作成して続きを投稿
+                    current_message_num += 1
+                    continuation_text = f"(続き {current_message_num}) " + full_response[MAX_MESSAGE_SIZE-20:]
+                    
+                    # 入力中の場合は「... :neko1:」を追加
+                    if not is_done:
+                        continuation_text += "... :neko1:"
+                    
+                    # 新しいメッセージを投稿
+                    new_message_result = post_message(channel, continuation_text, thread_ts)
+                    
+                    if not new_message_result.get("ok"):
+                        print(f"新規メッセージ送信エラー: {new_message_result.get('error')}")
+                    else:
+                        # 新しいメッセージのタイムスタンプを更新
+                        message_ts = new_message_result.get("ts")
+                        # 応答を更新（新しいメッセージの内容のみに）
+                        full_response = full_response[MAX_MESSAGE_SIZE-20:]
+                else:
+                    # 通常のメッセージ更新
+                    update_result = update_message(channel, message_ts, display_text)
+                    
+                    if not update_result.get("ok"):
+                        print(f"メッセージ更新エラー: {update_result.get('error')}")
+                
+                # 最終更新時間を更新
+                last_update_time = current_time
+        
+        # ストリーミングモードでGrok APIを呼び出し
+        for _ in call_grok_api_streaming(user_message, character, conversation_messages, streaming_callback):
+            # ジェネレーターを消費するだけで、実際の処理はコールバック関数で行う
+            pass
+        
     except Exception as e:
         print(f"メッセージ処理エラー: {str(e)}")
         import traceback

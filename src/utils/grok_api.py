@@ -58,8 +58,9 @@ def call_grok_api(
     # リクエストボディ
     data = {
         "model": "grok-3-latest",  # Grokのモデル名
+        "stream": False,
         "messages": messages,
-        "temperature": 0.7,  # 応答の多様性（0.0〜1.0）
+        "temperature": 0,  # 応答の多様性（0.0〜1.0）
     }
     
     try:

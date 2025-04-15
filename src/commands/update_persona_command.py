@@ -1,7 +1,8 @@
 from fastapi import Request, Body, Form, HTTPException
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import os
 import json
+import difflib
 from utils.slack_api import open_modal, post_message
 
 # default_persona.txtのパス
@@ -156,6 +157,30 @@ async def handle_update_persona_submission(request: Request, payload: Dict[str, 
         
         # ペルソナ設定を更新
         try:
+            # 更新前のペルソナ設定を読み込む
+            try:
+                with open(DEFAULT_PERSONA_PATH, "r", encoding="utf-8") as f:
+                    old_persona = f.read()
+            except Exception as e:
+                old_persona = ""
+                print(f"Warning: Could not read old persona: {str(e)}")
+            
+            # 差分を計算
+            diff_lines = list(difflib.unified_diff(
+                old_persona.splitlines(),
+                persona_input.splitlines(),
+                fromfile="旧ペルソナ",
+                tofile="新ペルソナ",
+                lineterm=""
+            ))
+            
+            # 差分がない場合のメッセージ
+            if not diff_lines:
+                diff_text = "変更はありません。"
+            else:
+                diff_text = "\n".join(diff_lines)
+            
+            # ペルソナ設定を更新
             with open(DEFAULT_PERSONA_PATH, "w", encoding="utf-8") as f:
                 f.write(persona_input)
             
@@ -165,11 +190,11 @@ async def handle_update_persona_submission(request: Request, payload: Dict[str, 
                 f"<@{user_id}> がペルソナ設定を更新しました！",
             )
             
-            # スレッドに新しいペルソナ設定を投稿
+            # スレッドに差分を投稿
             if message_response.get("ok"):
                 post_message(
                     channel_id,
-                    f"新しいペルソナ設定:\n```{persona_input}```",
+                    f"ペルソナ設定の変更点:\n```{diff_text}```",
                     message_response.get("ts"),  # スレッドの親メッセージのタイムスタンプ
                 )
             

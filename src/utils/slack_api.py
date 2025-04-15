@@ -4,6 +4,7 @@ import base64
 from typing import Dict, Any, Optional, List, Tuple
 import time
 import io
+import json
 
 # SlackのAPIトークン（環境変数から取得）
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
@@ -189,6 +190,104 @@ def get_thread_messages(
     try:
         # APIリクエスト
         response = requests.get(url, headers=headers, params=params)
+        
+        # レスポンスのチェック
+        response.raise_for_status()
+        
+        # JSONレスポンスの解析
+        return response.json()
+    
+    except requests.exceptions.RequestException as e:
+        return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}
+    except ValueError as e:
+        return {"ok": False, "error": f"JSONパースエラー: {str(e)}"}
+    except Exception as e:
+        return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}
+
+def open_modal(
+    trigger_id: str,
+    view: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Slackのモーダルを開く関数
+    
+    引数:
+        trigger_id: トリガーID
+        view: モーダルのビュー定義
+    
+    戻り値:
+        Slackからのレスポンス
+    """
+    if not SLACK_BOT_TOKEN:
+        return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
+    
+    # APIエンドポイント
+    url = "https://slack.com/api/views.open"
+    
+    # リクエストヘッダー
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+    }
+    
+    # リクエストボディ
+    data = {
+        "trigger_id": trigger_id,
+        "view": view
+    }
+    
+    try:
+        # APIリクエスト
+        response = requests.post(url, headers=headers, json=data)
+        
+        # レスポンスのチェック
+        response.raise_for_status()
+        
+        # JSONレスポンスの解析
+        return response.json()
+    
+    except requests.exceptions.RequestException as e:
+        return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}
+    except ValueError as e:
+        return {"ok": False, "error": f"JSONパースエラー: {str(e)}"}
+    except Exception as e:
+        return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}
+
+def update_modal(
+    view_id: str,
+    view: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Slackのモーダルを更新する関数
+    
+    引数:
+        view_id: 更新するビューのID
+        view: 新しいモーダルのビュー定義
+    
+    戻り値:
+        Slackからのレスポンス
+    """
+    if not SLACK_BOT_TOKEN:
+        return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
+    
+    # APIエンドポイント
+    url = "https://slack.com/api/views.update"
+    
+    # リクエストヘッダー
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+    }
+    
+    # リクエストボディ
+    data = {
+        "view_id": view_id,
+        "view": view
+    }
+    
+    try:
+        # APIリクエスト
+        response = requests.post(url, headers=headers, json=data)
         
         # レスポンスのチェック
         response.raise_for_status()

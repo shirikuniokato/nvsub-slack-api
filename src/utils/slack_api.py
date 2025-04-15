@@ -64,6 +64,55 @@ def post_message(
     except Exception as e:
         return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}
 
+def publish_home_view(
+    user_id: str,
+    view: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    ユーザーのApp Homeビューを公開する関数
+    
+    引数:
+        user_id: ユーザーID
+        view: App Homeのビュー定義
+    
+    戻り値:
+        Slackからのレスポンス
+    """
+    if not SLACK_BOT_TOKEN:
+        return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
+    
+    # APIエンドポイント
+    url = "https://slack.com/api/views.publish"
+    
+    # リクエストヘッダー
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+    }
+    
+    # リクエストボディ
+    data = {
+        "user_id": user_id,
+        "view": view
+    }
+    
+    try:
+        # APIリクエスト
+        response = requests.post(url, headers=headers, json=data)
+        
+        # レスポンスのチェック
+        response.raise_for_status()
+        
+        # JSONレスポンスの解析
+        return response.json()
+    
+    except requests.exceptions.RequestException as e:
+        return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}
+    except ValueError as e:
+        return {"ok": False, "error": f"JSONパースエラー: {str(e)}"}
+    except Exception as e:
+        return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}
+
 def download_and_convert_image(file_url: str) -> Tuple[bool, str, str]:
     """
     Slackの画像URLから画像をダウンロードし、base64に変換する関数

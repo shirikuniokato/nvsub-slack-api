@@ -1,5 +1,6 @@
 # Python関連
 __pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 *.so
@@ -24,6 +25,10 @@ var/
 venv/
 ENV/
 env/
+
+# 環境変数
+.env
+.env.*
 
 # データファイル
 src/data/superchat_data.json

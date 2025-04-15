@@ -17,7 +17,7 @@ class SlackVerificationMiddleware(BaseHTTPMiddleware):
     """
     async def dispatch(self, request: Request, call_next):
         # Slackの署名検証が必要なパスのみ検証
-        if request.url.path in ["/superchat", "/sql", "/events"]:
+        if request.url.path in ["/superchat", "/events"]:
             # リクエストヘッダーからSlackの署名と時間を取得
             slack_signature = request.headers.get("X-Slack-Signature")
             slack_timestamp = request.headers.get("X-Slack-Request-Timestamp")

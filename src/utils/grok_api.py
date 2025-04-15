@@ -3,7 +3,7 @@ import requests
 from typing import Dict, Any, Optional
 
 # Grok APIのエンドポイントとAPIキー（環境変数から取得）
-GROK_API_ENDPOINT = os.environ.get("GROK_API_ENDPOINT", "https://api.grok.x/v1/chat/completions")
+GROK_API_ENDPOINT = os.environ.get("GROK_API_ENDPOINT", "https://api.x.ai/v1/chat/completions")
 GROK_API_KEY = os.environ.get("GROK_API_KEY")
 
 def call_grok_api(

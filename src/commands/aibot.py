@@ -70,12 +70,12 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     
     # 非同期でGrok APIを呼び出して応答を生成し、Slackに送信
     # イベントを受け取ったことを即座に応答
-    asyncio.create_task(process_and_reply(text, channel, thread_ts, None))
+    asyncio.create_task(process_and_reply(text, channel, thread_ts, None, bot_user_id))
     
     # Slackイベントに対する応答（成功）
     return {"ok": True}
 
-async def process_and_reply(text: str, channel: str, thread_ts: str, character: Optional[Dict[str, str]] = None):
+async def process_and_reply(text: str, channel: str, thread_ts: str, character: Optional[Dict[str, str]] = None, bot_user_id: str = None):
     """
     メッセージを処理して返信する非同期関数
     
@@ -109,7 +109,9 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
         if thread_messages:
             for msg in thread_messages:
                 # ボットのメッセージかユーザーのメッセージかを判断
-                is_bot = msg.get("bot_id") is not None
+                # 自分のbotのメッセージかどうかを判定
+                is_self_bot = msg.get("bot_id") is not None and bot_user_id is not None and msg.get("bot_id") == bot_user_id
+                
                 msg_text = msg.get("text", "")
                 
                 # 「考え中...」や「... :neko1:」を含むメッセージはスキップ
@@ -158,7 +160,7 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                 
                 # コンテンツが空でない場合のみメッセージを追加
                 if content_items:
-                    if is_bot:
+                    if is_self_bot:
                         conversation_messages.append({
                             "role": "assistant",
                             "content": content_items

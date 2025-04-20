@@ -17,15 +17,17 @@ def get_default_config() -> Dict[str, Any]:
         "providers": {
             "grok": {
                 "name": "Grok",
+                "value": "grok",
                 "description": "Grok AI (X.AI)",
                 "default_model": "grok-3-latest",
                 "vision_model": "grok-2-vision-latest"
             },
             "openai": {
                 "name": "OpenAI",
+                "value": "openai",
                 "description": "OpenAI GPT",
-                "default_model": "gpt-4o",
-                "vision_model": "gpt-4o"
+                "default_model": "gpt-4.1",
+                "vision_model": "gpt-4.1"
             }
         }
     }

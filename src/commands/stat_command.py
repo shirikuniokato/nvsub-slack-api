@@ -199,8 +199,8 @@ def handle_stat_command(
         for user_name, data in sorted_users:
             stats_text += f"\n*{user_name}* - 合計: {data['total']}円\n"
             
-            # 日付と金額の一覧
-            for donation in sorted(data["donations"], key=lambda x: x["date"]):
+            # 日付と金額の一覧（日付の降順 - 最新のものから表示）
+            for donation in sorted(data["donations"], key=lambda x: x["date"], reverse=True):
                 stats_text += f"・{donation['date']}: {donation['amount']}円\n"
     
     # 成功の場合はチャンネルに表示

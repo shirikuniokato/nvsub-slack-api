@@ -23,7 +23,7 @@ app.post("/superchat")(superchat_endpoint)
 app.post("/update_persona")(update_persona_command)
 
 # 野良猫AIプロバイダー管理コマンドのエンドポイントを登録
-app.post("/ai-provider")(nai_command)
+app.post("/ai_provider")(nai_command)
 
 # Slackイベントを処理するエンドポイント
 @app.post("/events")
@@ -122,4 +122,4 @@ async def root():
     """
     ルートエンドポイント - APIが稼働していることを確認
     """
-    return {"status": "API is running", "endpoints": ["/superchat", "/update_persona", "/ai-provider", "/events", "/interactions"]}
+    return {"status": "API is running", "endpoints": ["/superchat", "/update_persona", "/ai_provider", "/events", "/interactions"]}

@@ -95,8 +95,8 @@ async def interactions_endpoint(request: Request):
             # ブロックアクション（ボタンクリックなど）
             action_id = payload_json.get("actions", [{}])[0].get("action_id", "")
             
-            if action_id == "update_persona_button":
-                # App Homeでのペルソナ更新ボタンクリック
+            if action_id in ["update_persona_button", "select_provider_grok", "select_provider_openai"]:
+                # App Homeでのインタラクション（ペルソナ更新ボタンクリックまたはAIプロバイダー選択）
                 return await handle_app_home_interaction(request, payload_json)
         
         # 未知のペイロードタイプの場合は空のレスポンスを返す

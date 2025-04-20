@@ -49,7 +49,7 @@ def convert_to_claude_messages(messages: list) -> list:
                 system_content = content
             
             claude_messages.append({
-                "role": "system",
+                "role": "assistant",
                 "content": system_content
             })
         

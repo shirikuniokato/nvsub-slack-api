@@ -100,7 +100,7 @@ async def interactions_endpoint(request: Request):
             # ブロックアクション（ボタンクリックなど）
             action_id = payload_json.get("actions", [{}])[0].get("action_id", "")
             
-            if action_id in ["update_persona_button", "select_provider_grok", "select_provider_openai"]:
+            if action_id in ["update_persona_button", "select_provider"]:
                 # App Homeでのインタラクション（ペルソナ更新ボタンクリックまたはAIプロバイダー選択）
                 return await handle_app_home_interaction(request, payload_json)
         

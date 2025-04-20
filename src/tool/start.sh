@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # デフォルト値の設定
-MODE=""
+MODE="production"
 
 # 引数の解析
 for arg in "$@"

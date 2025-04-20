@@ -214,15 +214,13 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                                 success, mime_type, base64_data = download_and_convert_pdf(pdf_url)
                                 
                                 if success:
-                                    # PDFをコンテンツに追加（正しい形式）
+                                    # PDFをコンテンツに追加（画像と同じ形式）
                                     content_items.append({
                                         "type": "document",
                                         "source": {
                                             "type": "base64",
-                                            "base64": {
-                                                "media_type": "application/pdf",
-                                                "data": base64_data
-                                            }
+                                            "media_type": "application/pdf",
+                                            "data": base64_data
                                         }
                                     })
                                     print(f"PDFの処理に成功しました: {file.get('name')}")

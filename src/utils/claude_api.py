@@ -127,29 +127,38 @@ def convert_to_claude_messages(messages: list) -> list:
                     
                     # PDFドキュメントの場合（Base64）
                     elif item_type == "document" and item.get("source", {}).get("type") == "base64":
-                        media_type = item.get("source", {}).get("media_type", "application/pdf")
-                        base64_data = item.get("source", {}).get("data", "")
-                        
-                        # 新しい形式でbase64オブジェクトを作成
-                        if item.get("source", {}).get("base64"):
-                            # すでに新しい形式の場合はそのまま使用
+                        # 画像と同じ形式で処理
+                        if item.get("source", {}).get("media_type") and item.get("source", {}).get("data"):
+                            # すでに画像と同じ形式の場合はそのまま使用
                             claude_content.append({
                                 "type": "document",
                                 "source": {
                                     "type": "base64",
-                                    "base64": item.get("source", {}).get("base64")
+                                    "media_type": item.get("source", {}).get("media_type"),
+                                    "data": item.get("source", {}).get("data")
+                                }
+                            })
+                        elif item.get("source", {}).get("base64"):
+                            # base64オブジェクトがある場合は画像と同じ形式に変換
+                            base64_obj = item.get("source", {}).get("base64", {})
+                            claude_content.append({
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": base64_obj.get("media_type", "application/pdf"),
+                                    "data": base64_obj.get("data", "")
                                 }
                             })
                         else:
-                            # 古い形式から新しい形式に変換
+                            # 古い形式から画像と同じ形式に変換
+                            media_type = item.get("source", {}).get("media_type", "application/pdf")
+                            base64_data = item.get("source", {}).get("data", "")
                             claude_content.append({
                                 "type": "document",
                                 "source": {
                                     "type": "base64",
-                                    "base64": {
-                                        "media_type": "application/pdf",
-                                        "data": base64_data
-                                    }
+                                    "media_type": media_type,
+                                    "data": base64_data
                                 }
                             })
                 

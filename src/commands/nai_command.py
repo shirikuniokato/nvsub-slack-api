@@ -1,10 +1,14 @@
-from fastapi import Request, Body
-from typing import Dict, Any
-import json
+from fastapi import Form
+from typing import Dict, Any, Optional
 from utils.slack_api import post_message
 from utils.ai_provider import get_current_provider, set_current_provider, get_provider_info
 
-async def nai_command(request: Request, form_data: Dict[str, Any] = Body(...)):
+async def nai_command(
+    text: str = Form(""),
+    user_id: str = Form(""),
+    team_id: str = Form(""),
+    channel_id: str = Form(""),
+):
     """
     野良猫AIプロバイダーを管理するスラッシュコマンド
     
@@ -15,16 +19,17 @@ async def nai_command(request: Request, form_data: Dict[str, Any] = Body(...)):
     /nai -h               - ヘルプを表示
     
     引数:
-        request: リクエストオブジェクト
-        form_data: Slackからのフォームデータ
+        text: コマンドテキスト
+        user_id: コマンドを実行したユーザーID
+        team_id: チームID
+        channel_id: チャンネルID
     
     戻り値:
         Slack応答フォーマットのJSON
     """
     try:
-        # ユーザーIDとコマンドテキストを取得
-        user_id = form_data.get("user_id")
-        text = form_data.get("text", "").strip()
+        # コマンドテキストを整形
+        text = text.strip()
         
         # コマンドの引数を解析
         args = text.split()

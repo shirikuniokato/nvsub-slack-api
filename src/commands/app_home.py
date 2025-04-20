@@ -86,7 +86,7 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                                     "text": f"{grok_info['name']} - {grok_info['description']}",
                                     "emoji": True
                                 },
-                                "value": {grok_info['value']}
+                                "value": grok_info['value']
                             },
                             {
                                 "text": {
@@ -94,7 +94,7 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                                     "text": f"{openai_info['name']} - {openai_info['description']}",
                                     "emoji": True
                                 },
-                                "value": {openai_info['value']}
+                                "value": openai_info['value']
                             }
                         ],
                         "initial_option": {

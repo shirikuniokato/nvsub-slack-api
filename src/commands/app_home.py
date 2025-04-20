@@ -67,7 +67,7 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                     "text": {
                         "type": "mrkdwn",
                         "text": "*AIプロバイダーの選択*\n現在のプロバイダー: " + 
-                                (f"*{grok_info.get('name', 'Grok')}*" if current_provider == "grok" else f"*{openai_info.get('name', 'OpenAI')}*")
+                                ("*Grok*" if current_provider == "grok" else "*OpenAI*")
                     }
                 },
                 {
@@ -78,7 +78,7 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": grok_info.get("name", "Grok"),
+                                "text": "Grok",
                                 "emoji": True
                             },
                             "style": "primary" if current_provider == "grok" else "default",
@@ -89,7 +89,7 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                             "type": "button",
                             "text": {
                                 "type": "plain_text",
-                                "text": openai_info.get("name", "OpenAI"),
+                                "text": "OpenAI",
                                 "emoji": True
                             },
                             "style": "primary" if current_provider == "openai" else "default",
@@ -197,8 +197,7 @@ async def handle_app_home_interaction(request: Request, payload: Dict[str, Any])
                 success = False
             
             if success:
-                provider_info = get_provider_info(provider)
-                provider_name = provider_info.get("name", provider.capitalize())
+                provider_name = "Grok" if provider == "grok" else "OpenAI"
                 
                 # 成功メッセージをDMで送信
                 post_message(

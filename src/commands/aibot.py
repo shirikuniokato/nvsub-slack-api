@@ -5,7 +5,9 @@ import os
 import asyncio
 import time
 from data.handlers import get_character_by_id
-from utils.grok_api import call_grok_api, call_grok_api_streaming
+from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_api_streaming as call_grok_api_streaming_original
+from utils.openai_api import call_openai_api, call_openai_api_streaming
+from utils.ai_provider import get_current_provider
 from utils.slack_api import post_message, get_thread_messages, update_message, download_and_convert_image
 
 # キャラクターのペルソナ設定ファイルのパス
@@ -74,6 +76,30 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     
     # Slackイベントに対する応答（成功）
     return {"ok": True}
+
+# プロバイダーに基づいてAPIを呼び出す関数
+def call_api(prompt, character=None, conversation_history=None):
+    """
+    現在の設定に基づいて適切なAI APIを呼び出す関数
+    """
+    provider = get_current_provider()
+    
+    if provider == "openai":
+        return call_openai_api(prompt, character, conversation_history)
+    else:  # デフォルトはGrok
+        return call_grok_api_original(prompt, character, conversation_history)
+
+# プロバイダーに基づいてストリーミングAPIを呼び出す関数
+def call_api_streaming(prompt, character=None, conversation_history=None, callback=None):
+    """
+    現在の設定に基づいて適切なAI APIをストリーミングモードで呼び出す関数
+    """
+    provider = get_current_provider()
+    
+    if provider == "openai":
+        return call_openai_api_streaming(prompt, character, conversation_history, callback)
+    else:  # デフォルトはGrok
+        return call_grok_api_streaming_original(prompt, character, conversation_history, callback)
 
 async def process_and_reply(text: str, channel: str, thread_ts: str, character: Optional[Dict[str, str]] = None, bot_user_id: str = None):
     """
@@ -261,8 +287,8 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                 # 最終更新時間を更新
                 last_update_time = current_time
         
-        # ストリーミングモードでGrok APIを呼び出し
-        for _ in call_grok_api_streaming(user_message, character, conversation_messages, streaming_callback):
+        # ストリーミングモードでAI APIを呼び出し
+        for _ in call_api_streaming(user_message, character, conversation_messages, streaming_callback):
             # ジェネレーターを消費するだけで、実際の処理はコールバック関数で行う
             pass
         

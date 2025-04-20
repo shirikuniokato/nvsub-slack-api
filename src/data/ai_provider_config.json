@@ -1,0 +1,17 @@
+{
+  "current_provider": "grok",
+  "providers": {
+    "grok": {
+      "name": "Grok",
+      "description": "Grok AI (X.AI)",
+      "default_model": "grok-3-latest",
+      "vision_model": "grok-2-vision-latest"
+    },
+    "openai": {
+      "name": "OpenAI",
+      "description": "OpenAI GPT",
+      "default_model": "gpt-4o",
+      "vision_model": "gpt-4o"
+    }
+  }
+}

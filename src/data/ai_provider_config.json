@@ -12,8 +12,8 @@
       "name": "OpenAI",
       "value": "openai",
       "description": "OpenAI GPT",
-      "default_model": "gpt-4o",
-      "vision_model": "gpt-4o"
+      "default_model": "gpt-4.1",
+      "vision_model": "gpt-4.1"
     }
   }
 }

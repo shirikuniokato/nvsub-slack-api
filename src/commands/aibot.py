@@ -4,6 +4,7 @@ import json
 import os
 import asyncio
 import time
+import random
 from data.handlers import get_character_by_id
 from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_api_streaming as call_grok_api_streaming_original
 from utils.openai_api import call_openai_api, call_openai_api_streaming
@@ -50,17 +51,26 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     bot_user_id = payload.get("event", {}).get("bot_id") or payload.get("authorizations", [{}])[0].get("user_id", "")
     text = event.get("text", "").replace(f"<@{bot_user_id}>", "").strip()
     
-    # メンションのみのメッセージ（テキストが空）の場合は入力を促すメッセージを返す
+    # メンションのみのメッセージ（テキストが空）の場合
     if not text:
-        print("メンションのみのメッセージのため入力を促すメッセージを返します")
-        # 非同期でメッセージを送信
-        asyncio.create_task(
-            post_message(
-                event.get("channel"),
-                "何か質問はあるかしら？",
-                event.get("thread_ts") or event.get("ts")
-            )
-        )
+        # スレッド内かどうかを判断
+        is_in_thread = event.get("thread_ts") is not None and event.get("thread_ts") != event.get("ts")
+        
+        if is_in_thread:
+            print("スレッド内の無言メンションのためスレッドを読み込んで返信します")
+            # スレッド内の場合はスレッドを読み込んで返信
+            channel = event.get("channel")
+            thread_ts = event.get("thread_ts") or event.get("ts")
+            # 非同期でスレッドを読み込んで返信
+            asyncio.create_task(process_and_reply("このスレッドの内容について教えて", channel, thread_ts, None, bot_user_id))
+        else:
+            print("スレッド外の無言メンションのためおみくじを返信します")
+            # スレッド外の場合はおみくじを返信
+            channel = event.get("channel")
+            thread_ts = event.get("thread_ts") or event.get("ts")
+            # 非同期でおみくじを生成して返信
+            asyncio.create_task(process_and_reply("今日のおみくじを引いて、結果と簡単な説明を教えて", channel, thread_ts, None, bot_user_id))
+        
         return {"ok": True}
     
     # チャンネルとスレッド情報の取得

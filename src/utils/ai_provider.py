@@ -11,7 +11,7 @@ def get_model_from_env(provider: str, model_type: str = "default") -> str:
     環境変数からモデル情報を取得する関数
     
     引数:
-        provider: プロバイダー名 ("grok" または "openai")
+        provider: プロバイダー名 ("grok", "openai", または "claude")
         model_type: モデルタイプ ("default" または "vision")
     
     戻り値:
@@ -26,6 +26,10 @@ def get_model_from_env(provider: str, model_type: str = "default") -> str:
         "openai": {
             "default": "OPENAI_MODEL",
             "vision": "OPENAI_VISION_MODEL"
+        },
+        "claude": {
+            "default": "CLAUDE_MODEL",
+            "vision": "CLAUDE_VISION_MODEL"
         }
     }
     
@@ -50,6 +54,10 @@ def get_model_from_env(provider: str, model_type: str = "default") -> str:
             "openai": {
                 "default": "gpt-4o",
                 "vision": "gpt-4o"
+            },
+            "claude": {
+                "default": "claude-3-opus-20240229",
+                "vision": "claude-3-opus-20240229"
             }
         }
         
@@ -81,6 +89,13 @@ def get_default_config() -> Dict[str, Any]:
                 "description": "OpenAI GPT",
                 "default_model": "gpt-4.1",
                 "vision_model": "gpt-4.1"
+            },
+            "claude": {
+                "name": "Claude",
+                "value": "claude",
+                "description": "Anthropic Claude",
+                "default_model": "claude-3-opus-20240229",
+                "vision_model": "claude-3-opus-20240229"
             }
         }
     }
@@ -145,7 +160,7 @@ def get_current_provider() -> str:
     現在選択されている AI プロバイダーを取得する関数
     
     戻り値:
-        現在のプロバイダー名 ("grok" または "openai")
+        現在のプロバイダー名 ("grok", "openai", または "claude")
     """
     config = load_config()
     return config.get("current_provider", "grok")
@@ -155,12 +170,12 @@ def set_current_provider(provider: str) -> bool:
     現在の AI プロバイダーを設定する関数
     
     引数:
-        provider: 設定するプロバイダー名 ("grok" または "openai")
+        provider: 設定するプロバイダー名 ("grok", "openai", または "claude")
     
     戻り値:
         設定に成功した場合はTrue、失敗した場合はFalse
     """
-    if provider not in ["grok", "openai"]:
+    if provider not in ["grok", "openai", "claude"]:
         print(f"無効なプロバイダー名: {provider}")
         return False
     
@@ -199,7 +214,7 @@ def set_model(provider: str, model: str, model_type: str = "default") -> bool:
     モデルをJSONファイルに設定する関数
     
     引数:
-        provider: プロバイダー名 ("grok" または "openai")
+        provider: プロバイダー名 ("grok", "openai", または "claude")
         model: 設定するモデル名
         model_type: モデルタイプ ("default" または "vision")
     
@@ -207,7 +222,7 @@ def set_model(provider: str, model: str, model_type: str = "default") -> bool:
         設定に成功した場合はTrue、失敗した場合はFalse
     """
     try:
-        if provider not in ["grok", "openai"]:
+        if provider not in ["grok", "openai", "claude"]:
             print(f"無効なプロバイダー名: {provider}")
             return False
         

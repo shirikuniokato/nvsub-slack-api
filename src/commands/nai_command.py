@@ -45,6 +45,7 @@ async def nai_command(
                         "`/nai` - 現在のプロバイダーを表示\n"
                         "`/nai -s grok` - プロバイダーをGrokに設定\n"
                         "`/nai -s openai` - プロバイダーをOpenAIに設定\n"
+                        "`/nai -s claude` - プロバイダーをClaudeに設定\n"
                         "`/nai -m gpt-4o` - 現在のプロバイダーのモデルを設定\n"
                         "`/nai -m gpt-4o -t vision` - 現在のプロバイダーのビジョンモデルを設定\n"
                         "`/nai -h` - このヘルプを表示"
@@ -107,11 +108,11 @@ async def nai_command(
             if len(args) > set_index + 1:
                 provider = args[set_index + 1].lower()
                 
-                if provider not in ["grok", "openai"]:
+                if provider not in ["grok", "openai", "claude"]:
                     return {
                         "response_type": "ephemeral",
                         "text": f"エラー: 無効なプロバイダー名 '{provider}'\n"
-                                "有効なプロバイダー: grok, openai"
+                                "有効なプロバイダー: grok, openai, claude"
                     }
                 
                 # プロバイダーを設定
@@ -151,7 +152,7 @@ async def nai_command(
                     f"使用モデル: {default_model}\n"
                     f"使用モデル(画像解析): {vision_model}\n\n"
                     "プロバイダーを変更するには:\n"
-                    "`/nai -s grok` または `/nai -s openai`\n\n"
+                    "`/nai -s grok` または `/nai -s openai` または `/nai -s claude`\n\n"
                     "モデルを変更するには:\n"
                     "`/nai -m <モデル名>` または `/nai -m <モデル名> -t vision`"
         }

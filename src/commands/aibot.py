@@ -8,6 +8,7 @@ import random
 from data.handlers import get_character_by_id
 from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_api_streaming as call_grok_api_streaming_original
 from utils.openai_api import call_openai_api, call_openai_api_streaming
+from utils.claude_api import call_claude_api, call_claude_api_streaming
 from utils.ai_provider import get_current_provider
 from utils.slack_api import post_message, get_thread_messages, update_message, download_and_convert_image
 
@@ -97,6 +98,8 @@ def call_api(prompt, character=None, conversation_history=None):
         
         if provider == "openai":
             return call_openai_api(prompt, character, conversation_history)
+        elif provider == "claude":
+            return call_claude_api(prompt, character, conversation_history)
         else:  # デフォルトはGrok
             return call_grok_api_original(prompt, character, conversation_history)
     except Exception as e:
@@ -114,6 +117,8 @@ def call_api_streaming(prompt, character=None, conversation_history=None, callba
         
         if provider == "openai":
             return call_openai_api_streaming(prompt, character, conversation_history, callback)
+        elif provider == "claude":
+            return call_claude_api_streaming(prompt, character, conversation_history, callback)
         else:  # デフォルトはGrok
             return call_grok_api_streaming_original(prompt, character, conversation_history, callback)
     except Exception as e:

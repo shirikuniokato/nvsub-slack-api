@@ -42,11 +42,13 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
             current_provider = get_current_provider()
             grok_info = get_provider_info("grok")
             openai_info = get_provider_info("openai")
+            claude_info = get_provider_info("claude")
         except Exception as e:
             print(f"AIプロバイダー設定の読み込みに失敗しました: {str(e)}")
             current_provider = "grok"
             grok_info = {"name": "Grok", "description": "Grok AI (X.AI)"}
             openai_info = {"name": "OpenAI", "description": "OpenAI GPT"}
+            claude_info = {"name": "Claude", "description": "Anthropic Claude"}
         
         # App Homeのビュー定義
         view = {
@@ -68,7 +70,9 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                     "text": {
                         "type": "mrkdwn",
                         "text": "*AIプロバイダーの選択*\n現在のプロバイダー: " + 
-                                ("*Grok*" if current_provider == "grok" else "*OpenAI*")
+                                ("*Grok*" if current_provider == "grok" else 
+                                 "*OpenAI*" if current_provider == "openai" else 
+                                 "*Claude*")
                     }
                 },
                 {
@@ -96,12 +100,22 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                                     "emoji": True
                                 },
                                 "value": openai_info['value']
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": f"{claude_info['name']} - {claude_info['description']}",
+                                    "emoji": True
+                                },
+                                "value": claude_info['value']
                             }
                         ],
                         "initial_option": {
                             "text": {
                                 "type": "plain_text",
-                                "text": f"{grok_info['name']} - {grok_info['description']}" if current_provider == "grok" else f"{openai_info['name']} - {openai_info['description']}",
+                                "text": f"{grok_info['name']} - {grok_info['description']}" if current_provider == "grok" else 
+                                        f"{openai_info['name']} - {openai_info['description']}" if current_provider == "openai" else
+                                        f"{claude_info['name']} - {claude_info['description']}",
                                 "emoji": True
                             },
                             "value": current_provider
@@ -208,7 +222,7 @@ async def handle_app_home_interaction(request: Request, payload: Dict[str, Any])
                 success = False
             
             if success:
-                provider_name = "Grok" if provider == "grok" else "OpenAI"
+                provider_name = "Grok" if provider == "grok" else "OpenAI" if provider == "openai" else "Claude"
                 
                 # 成功メッセージをDMで送信
                 post_message(

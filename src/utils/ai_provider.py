@@ -5,6 +5,59 @@ from typing import Dict, Any, Optional
 # 設定ファイルのパス
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "ai_provider_config.json")
 
+# 環境変数からモデル情報を取得する関数
+def get_model_from_env(provider: str, model_type: str = "default") -> str:
+    """
+    環境変数からモデル情報を取得する関数
+    
+    引数:
+        provider: プロバイダー名 ("grok" または "openai")
+        model_type: モデルタイプ ("default" または "vision")
+    
+    戻り値:
+        モデル名（環境変数が設定されていない場合はデフォルト値）
+    """
+    # 環境変数名のマッピング
+    env_var_mapping = {
+        "grok": {
+            "default": "GROK_API_MODEL",
+            "vision": "GROK_VISION_MODEL"
+        },
+        "openai": {
+            "default": "OPENAI_MODEL",
+            "vision": "OPENAI_VISION_MODEL"
+        }
+    }
+    
+    # プロバイダーとモデルタイプに対応する環境変数名を取得
+    env_var_name = env_var_mapping.get(provider, {}).get(model_type)
+    
+    # 対応する環境変数名がない場合はデフォルトのパターンを使用
+    if not env_var_name:
+        env_var_name = f"{provider.upper()}_{model_type.upper()}_MODEL"
+    
+    # 環境変数からモデル名を取得
+    model_name = os.environ.get(env_var_name)
+    
+    # 環境変数が設定されていない場合はデフォルト値を返す
+    if not model_name:
+        # デフォルト値のマッピング
+        defaults = {
+            "grok": {
+                "default": "grok-3-latest",
+                "vision": "grok-2-vision-latest"
+            },
+            "openai": {
+                "default": "gpt-4o",
+                "vision": "gpt-4o"
+            }
+        }
+        
+        # プロバイダーとモデルタイプに対応するデフォルト値を返す
+        return defaults.get(provider, {}).get(model_type, "")
+    
+    return model_name
+
 def get_default_config() -> Dict[str, Any]:
     """
     デフォルトの設定を取得する関数
@@ -131,4 +184,10 @@ def get_provider_info(provider: Optional[str] = None) -> Dict[str, Any]:
         provider = config.get("current_provider", "grok")
     
     providers = config.get("providers", {})
-    return providers.get(provider, {})
+    provider_info = providers.get(provider, {}).copy()
+    
+    # 環境変数からモデル情報を取得して上書き
+    provider_info["default_model"] = get_model_from_env(provider, "default")
+    provider_info["vision_model"] = get_model_from_env(provider, "vision")
+    
+    return provider_info

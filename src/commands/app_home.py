@@ -150,6 +150,8 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                 }
             ]
         }
+
+        print(view)
         
         # App Homeビューを公開
         response = publish_home_view(user_id, view)

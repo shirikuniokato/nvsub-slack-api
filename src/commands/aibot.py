@@ -10,7 +10,7 @@ from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_ap
 from utils.openai_api import call_openai_api, call_openai_api_streaming
 from utils.claude_api import call_claude_api, call_claude_api_streaming
 from utils.ai_provider import get_current_provider
-from utils.slack_api import post_message, get_thread_messages, update_message, download_and_convert_image
+from utils.slack_api import post_message, get_thread_messages, update_message, download_and_convert_image, download_and_convert_pdf
 
 # キャラクターのペルソナ設定ファイルのパス
 DEFAULT_PERSONA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "default_persona.txt")
@@ -172,10 +172,10 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                 # メッセージの内容を構築
                 content_items = []
                 
-                # 画像が含まれているかチェック
+                # 画像やPDFが含まれているかチェック
                 if "files" in msg and msg["files"]:
                     for file in msg["files"]:
-                        # 画像ファイルのみ処理
+                        # 画像ファイルの処理
                         if file.get("mimetype", "").startswith("image/"):
                             # 画像URLを取得
                             image_url = file.get("url_private")
@@ -201,6 +201,31 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                                     print(f"画像の処理に成功しました: {file.get('name')}")
                                 else:
                                     print(f"画像の処理に失敗しました: {base64_data}")
+                        
+                        # PDFファイルの処理
+                        elif file.get("mimetype", "") == "application/pdf":
+                            # PDF URLを取得
+                            pdf_url = file.get("url_private")
+                            
+                            if pdf_url:
+                                print(f"PDFを処理中: {pdf_url}")
+                                
+                                # PDFをダウンロードしてbase64に変換
+                                success, mime_type, base64_data = download_and_convert_pdf(pdf_url)
+                                
+                                if success:
+                                    # PDFをコンテンツに追加
+                                    content_items.append({
+                                        "type": "document",
+                                        "source": {
+                                            "type": "base64",
+                                            "media_type": mime_type,
+                                            "data": base64_data
+                                        }
+                                    })
+                                    print(f"PDFの処理に成功しました: {file.get('name')}")
+                                else:
+                                    print(f"PDFの処理に失敗しました: {base64_data}")
                 
                 # テキストをコンテンツに追加
                 if msg_text:

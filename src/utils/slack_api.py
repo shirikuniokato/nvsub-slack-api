@@ -152,6 +152,45 @@ def download_and_convert_image(file_url: str) -> Tuple[bool, str, str]:
     except Exception as e:
         return False, "", f"予期せぬエラー: {str(e)}"
 
+def download_and_convert_pdf(file_url: str) -> Tuple[bool, str, str]:
+    """
+    SlackのPDF URLからPDFをダウンロードし、base64に変換する関数
+    
+    引数:
+        file_url: SlackのPDF URL
+    
+    戻り値:
+        成功フラグ、MIMEタイプ、base64エンコードされたPDFデータのタプル
+    """
+    if not SLACK_BOT_TOKEN:
+        return False, "", "SLACK_BOT_TOKENが設定されていません"
+    
+    try:
+        # ヘッダーにトークンを設定
+        headers = {
+            "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+        }
+        
+        # PDFをダウンロード
+        response = requests.get(file_url, headers=headers)
+        
+        # レスポンスのチェック
+        response.raise_for_status()
+        
+        # MIMEタイプを取得
+        mime_type = response.headers.get("Content-Type", "application/pdf")
+        
+        # PDFデータをbase64にエンコード
+        pdf_data = response.content
+        base64_data = base64.b64encode(pdf_data).decode("utf-8")
+        
+        return True, mime_type, base64_data
+    
+    except requests.exceptions.RequestException as e:
+        return False, "", f"PDFダウンロードエラー: {str(e)}"
+    except Exception as e:
+        return False, "", f"予期せぬエラー: {str(e)}"
+
 def update_message(
     channel: str,
     ts: str,

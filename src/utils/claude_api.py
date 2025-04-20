@@ -20,6 +20,23 @@ def contains_image(messages: list) -> bool:
                     return True
     return False
 
+def contains_document(messages: list) -> bool:
+    """
+    メッセージリストにPDFドキュメントが含まれているかどうかを判定する関数
+    
+    引数:
+        messages: メッセージのリスト
+    
+    戻り値:
+        PDFドキュメントが含まれている場合はTrue、そうでない場合はFalse
+    """
+    for message in messages:
+        if "content" in message and isinstance(message["content"], list):
+            for item in message["content"]:
+                if item.get("type") == "document":
+                    return True
+    return False
+
 def convert_to_claude_messages(messages: list) -> list:
     """
     OpenAI形式のメッセージをClaude形式に変換する関数
@@ -96,6 +113,30 @@ def convert_to_claude_messages(messages: list) -> list:
                                     "url": image_url
                                 }
                             })
+                    
+                    # PDFドキュメントの場合（URL）
+                    elif item_type == "document" and item.get("source", {}).get("type") == "url":
+                        pdf_url = item.get("source", {}).get("url", "")
+                        claude_content.append({
+                            "type": "document",
+                            "source": {
+                                "type": "url",
+                                "url": pdf_url
+                            }
+                        })
+                    
+                    # PDFドキュメントの場合（Base64）
+                    elif item_type == "document" and item.get("source", {}).get("type") == "base64":
+                        media_type = item.get("source", {}).get("media_type", "application/pdf")
+                        base64_data = item.get("source", {}).get("data", "")
+                        claude_content.append({
+                            "type": "document",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": base64_data
+                            }
+                        })
                 
                 claude_messages.append({
                     "role": role,
@@ -173,17 +214,18 @@ def call_claude_api(
         })
     
     try:
-        # 画像が含まれているかどうかを判定
+        # 画像またはPDFが含まれているかどうかを判定
         has_image = contains_image(messages)
+        has_document = contains_document(messages)
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("claude")
         default_model = provider_info.get("default_model", "claude-3-opus-20240229")
         vision_model = provider_info.get("vision_model", "claude-3-opus-20240229")
         
-        # 使用するモデルを選択
-        model = vision_model if has_image else default_model
-        print(f"使用するモデル: {model} (画像あり: {has_image})")
+        # 使用するモデルを選択（画像またはPDFが含まれている場合はvision_modelを使用）
+        model = vision_model if (has_image or has_document) else default_model
+        print(f"使用するモデル: {model} (画像あり: {has_image}, PDFあり: {has_document})")
         
         # OpenAI形式のメッセージをClaude形式に変換
         claude_messages = convert_to_claude_messages(messages)
@@ -272,17 +314,18 @@ def call_claude_api_streaming(
         })
     
     try:
-        # 画像が含まれているかどうかを判定
+        # 画像またはPDFが含まれているかどうかを判定
         has_image = contains_image(messages)
+        has_document = contains_document(messages)
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("claude")
         default_model = provider_info.get("default_model", "claude-3-opus-20240229")
         vision_model = provider_info.get("vision_model", "claude-3-opus-20240229")
         
-        # 使用するモデルを選択
-        model = vision_model if has_image else default_model
-        print(f"使用するモデル: {model} (画像あり: {has_image})")
+        # 使用するモデルを選択（画像またはPDFが含まれている場合はvision_modelを使用）
+        model = vision_model if (has_image or has_document) else default_model
+        print(f"使用するモデル: {model} (画像あり: {has_image}, PDFあり: {has_document})")
         
         # OpenAI形式のメッセージをClaude形式に変換
         claude_messages = convert_to_claude_messages(messages)

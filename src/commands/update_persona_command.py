@@ -4,6 +4,7 @@ import os
 import json
 import difflib
 from utils.slack_api import open_modal, post_message
+from data.handlers import add_history_entry, PERSONA_HISTORY_FILE
 
 # default_persona.txtのパス
 DEFAULT_PERSONA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "default_persona.txt")
@@ -183,6 +184,14 @@ async def handle_update_persona_submission(request: Request, payload: Dict[str, 
             # ペルソナ設定を更新
             with open(DEFAULT_PERSONA_PATH, "w", encoding="utf-8") as f:
                 f.write(persona_input)
+            
+            # 履歴に記録（変更前後の全文も保存）
+            details = {
+                "diff": diff_text,
+                "from_modal": True
+            }
+            add_history_entry(PERSONA_HISTORY_FILE, "update_persona", details, user_id, 
+                             content_before=old_persona, content_after=persona_input)
             
             # 更新成功のメッセージをチャンネルに送信
             message_response = post_message(

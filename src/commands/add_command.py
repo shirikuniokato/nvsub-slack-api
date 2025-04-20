@@ -64,8 +64,8 @@ def handle_add_command(
     
     superchat_data.append(new_superchat)
     
-    # データを保存
-    save_superchat_data(superchat_data)
+    # データを保存（ユーザーIDを渡して履歴に記録）
+    save_superchat_data(superchat_data, user_id, "add")
     
     # YouTubeチャンネル情報（あれば表示）
     youtube_info = ""

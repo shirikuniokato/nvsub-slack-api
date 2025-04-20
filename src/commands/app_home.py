@@ -5,6 +5,7 @@ import json
 import difflib
 from utils.slack_api import publish_home_view, post_message
 from utils.ai_provider import get_current_provider, set_current_provider, get_provider_info
+from data.handlers import add_history_entry, PERSONA_HISTORY_FILE
 
 # default_persona.txtのパス
 DEFAULT_PERSONA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "default_persona.txt")
@@ -263,6 +264,14 @@ async def handle_app_home_interaction(request: Request, payload: Dict[str, Any])
                 # ペルソナ設定を更新
                 with open(DEFAULT_PERSONA_PATH, "w", encoding="utf-8") as f:
                     f.write(persona_input)
+                
+                # 履歴に記録（変更前後の全文も保存）
+                details = {
+                    "diff": diff_text,
+                    "from_app_home": True
+                }
+                add_history_entry(PERSONA_HISTORY_FILE, "update_persona", details, user_id, 
+                                 content_before=old_persona, content_after=persona_input)
                 
                 print(f"ペルソナ設定を更新しました")
                 

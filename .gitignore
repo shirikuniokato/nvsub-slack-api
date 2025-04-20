@@ -30,9 +30,14 @@ env/
 .env
 .env.*
 
-# データファイル
+# データファイル（実データは除外、履歴は管理）
 src/data/superchat_data.json
 src/data/user_display_names.json
+src/data/aibot_characters.json
+
+# 履歴ファイルは Git で管理する
+# src/data/superchat_history.json
+# src/data/persona_history.json
 
 # IDE関連
 .idea/

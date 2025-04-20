@@ -110,6 +110,60 @@ async def get_available_models(provider: str = None) -> Dict[str, List[str]]:
     
     return result
 
+def get_model_reference_links(provider: str, model_name: str = None) -> Dict[str, str]:
+    """
+    モデルの参考リンクを取得する関数
+    
+    引数:
+        provider: プロバイダー名 ("grok", "openai", または "claude")
+        model_name: モデル名（個別リンク用、任意）
+    
+    戻り値:
+        リンク情報を含む辞書
+    """
+    links = {
+        "openai": {
+            "all": "https://platform.openai.com/docs/models",
+            "individual": None
+        },
+        "grok": {
+            "all": "https://docs.x.ai/docs/models#models-and-pricing",
+            "individual": None
+        },
+        "claude": {
+            "all": "https://docs.anthropic.com/ja/docs/about-claude/models/all-models#model-comparison-table",
+            "individual": None
+        }
+    }
+    
+    result = {}
+    
+    # 全体リンク
+    if provider in links:
+        result["all"] = links[provider]["all"]
+    
+    # 個別リンク
+    if model_name and provider in links and links[provider]["individual"]:
+        # OpenAIの場合、日付部分を除外
+        if provider == "openai":
+            # 日付部分を除外（例: gpt-4-0125-preview → gpt-4）
+            base_model = model_name.split("-")
+            if len(base_model) > 2:
+                # 数字で始まる部分を探して除外
+                clean_name = []
+                for part in base_model:
+                    if not part[0].isdigit():
+                        clean_name.append(part)
+                    else:
+                        break
+                model_name = "-".join(clean_name)
+            
+            result["individual"] = f"https://platform.openai.com/docs/models/{model_name}"
+        else:
+            result["individual"] = links[provider]["individual"]
+    
+    return result
+
 async def get_models_command(
     text: str = Form(""),
     user_id: str = Form(""),
@@ -184,13 +238,25 @@ async def get_models_command(
             
             models = models_dict.get(provider, [])
             
+            # 参考リンクを取得
+            links = get_model_reference_links(provider)
+            
             response_text = f"*{provider_name}* で利用可能なモデル:\n\n"
             
             if models:
                 for model in models:
-                    response_text += f"• {model}\n"
+                    # 個別モデルのリンクを取得
+                    model_links = get_model_reference_links(provider, model)
+                    if "individual" in model_links and model_links["individual"]:
+                        response_text += f"• <{model_links['individual']}|{model}>\n"
+                    else:
+                        response_text += f"• {model}\n"
             else:
                 response_text += "利用可能なモデルはありません。\n"
+            
+            # 全体リンクを追加
+            if "all" in links and links["all"]:
+                response_text += f"\n<{links['all']}|{provider_name} モデルの詳細ドキュメント>\n"
             
             return {
                 "response_type": "ephemeral",
@@ -208,13 +274,25 @@ async def get_models_command(
                     "claude": "Claude"
                 }.get(provider, provider.capitalize())
                 
+                # 参考リンクを取得
+                links = get_model_reference_links(provider)
+                
                 response_text += f"*{provider_name}:*\n"
                 
                 if models:
                     for model in models:
-                        response_text += f"• {model}\n"
+                        # 個別モデルのリンクを取得
+                        model_links = get_model_reference_links(provider, model)
+                        if "individual" in model_links and model_links["individual"]:
+                            response_text += f"• <{model_links['individual']}|{model}>\n"
+                        else:
+                            response_text += f"• {model}\n"
                 else:
                     response_text += "利用可能なモデルはありません。\n"
+                
+                # 全体リンクを追加
+                if "all" in links and links["all"]:
+                    response_text += f"<{links['all']}|{provider_name} モデルの詳細ドキュメント>\n"
                 
                 response_text += "\n"
             

@@ -44,11 +44,6 @@ async def nai_command(
                         "`/nai -s grok` - プロバイダーをGrokに設定\n"
                         "`/nai -s openai` - プロバイダーをOpenAIに設定\n"
                         "`/nai -h` - このヘルプを表示",
-                "attachments": [
-                    {
-                        "text": "Tip: Slackアプリの設定で「Command Hint」を `[現在のモデル確認 | -s <grok|openai> モデル切替 | -h ヘルプ]` に設定すると便利です。"
-                    }
-                ]
             }
         
         # プロバイダーを設定

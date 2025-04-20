@@ -71,34 +71,42 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                     }
                 },
                 {
-                    "type": "actions",
-                    "block_id": "provider_actions",
-                    "elements": [
-                        {
-                            "type": "button",
+                    "type": "section",
+                    "block_id": "provider_selection",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "使用するAIプロバイダーを選択してください："
+                    },
+                    "accessory": {
+                        "type": "radio_buttons",
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": f"{grok_info['name']} - {grok_info['description']}",
+                                    "emoji": True
+                                },
+                                "value": "grok"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": f"{openai_info['name']} - {openai_info['description']}",
+                                    "emoji": True
+                                },
+                                "value": "openai"
+                            }
+                        ],
+                        "initial_option": {
                             "text": {
                                 "type": "plain_text",
-                                "text": "Grok",
+                                "text": f"{grok_info['name']} - {grok_info['description']}" if current_provider == "grok" else f"{openai_info['name']} - {openai_info['description']}",
                                 "emoji": True
                             },
-                            # "style": "primary" if current_provider == "grok" else "default",
-                            "style": "primary",
-                            "value": "grok",
-                            "action_id": "select_provider_grok"
+                            "value": current_provider
                         },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "OpenAI",
-                                "emoji": True
-                            },
-                            # "style": "primary" if current_provider == "openai" else "default",
-                            "style": "default",
-                            "value": "openai",
-                            "action_id": "select_provider_openai"
-                        }
-                    ]
+                        "action_id": "select_provider"
+                    }
                 },
                 {
                     "type": "divider"
@@ -153,8 +161,6 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
             ]
         }
 
-        print(view)
-        
         # App Homeビューを公開
         response = publish_home_view(user_id, view)
         
@@ -186,12 +192,12 @@ async def handle_app_home_interaction(request: Request, payload: Dict[str, Any])
         print(payload)
         
         # AIプロバイダーの選択処理
-        if action_id == "select_provider_grok" or action_id == "select_provider_openai":
+        if action_id == "select_provider":
             # ユーザーIDを取得
             user_id = payload.get("user", {}).get("id")
             
-            # プロバイダー名を取得
-            provider = "grok" if action_id == "select_provider_grok" else "openai"
+            # 選択されたプロバイダー名を取得
+            provider = payload.get("actions", [{}])[0].get("selected_option", {}).get("value")
             
             try:
                 # プロバイダーを設定

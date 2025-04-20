@@ -259,7 +259,7 @@ async def get_models_command(
                 response_text += f"\n<{links['all']}|{provider_name} モデルの詳細ドキュメント>\n"
             
             return {
-                "response_type": "ephemeral",
+                "response_type": "in_channel",
                 "text": response_text
             }
         
@@ -297,7 +297,7 @@ async def get_models_command(
                 response_text += "\n"
             
             return {
-                "response_type": "ephemeral",
+                "response_type": "in_channel",
                 "text": response_text
             }
     

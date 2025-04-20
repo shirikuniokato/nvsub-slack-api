@@ -46,6 +46,7 @@ if [ "$MODE" = "production" ]; then
     echo "本番モードでアプリケーションを起動します..."
     # 本番モード用のコマンド
     sudo systemctl daemon-reload
+    sudo systemctl restart nginx
     sudo systemctl restart slack-api
     sudo systemctl status slack-api
 fi

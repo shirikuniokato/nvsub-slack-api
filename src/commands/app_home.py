@@ -70,34 +70,34 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
                                 ("*Grok*" if current_provider == "grok" else "*OpenAI*")
                     }
                 },
-                {
-                    "type": "actions",
-                    "block_id": "provider_actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Grok",
-                                "emoji": True
-                            },
-                            "style": "primary" if current_provider == "grok" else "default",
-                            "value": "grok",
-                            "action_id": "select_provider_grok"
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "OpenAI",
-                                "emoji": True
-                            },
-                            "style": "primary" if current_provider == "openai" else "default",
-                            "value": "openai",
-                            "action_id": "select_provider_openai"
-                        }
-                    ]
-                },
+                # {
+                #     "type": "actions",
+                #     "block_id": "provider_actions",
+                #     "elements": [
+                #         {
+                #             "type": "button",
+                #             "text": {
+                #                 "type": "plain_text",
+                #                 "text": "Grok",
+                #                 "emoji": True
+                #             },
+                #             "style": "primary" if current_provider == "grok" else "default",
+                #             "value": "grok",
+                #             "action_id": "select_provider_grok"
+                #         },
+                #         {
+                #             "type": "button",
+                #             "text": {
+                #                 "type": "plain_text",
+                #                 "text": "OpenAI",
+                #                 "emoji": True
+                #             },
+                #             "style": "primary" if current_provider == "openai" else "default",
+                #             "value": "openai",
+                #             "action_id": "select_provider_openai"
+                #         }
+                #     ]
+                # },
                 {
                     "type": "divider"
                 },

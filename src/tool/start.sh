@@ -47,6 +47,7 @@ if [ "$MODE" = "production" ]; then
     # 本番モード用のコマンド
     sudo systemctl daemon-reload
     sudo systemctl restart slack-api
+    sudo systemctl status slack-api
 fi
 
 exit 0

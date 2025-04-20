@@ -95,11 +95,13 @@ async def nai_command(
         provider_name = provider_info.get("name", current_provider.capitalize())
         provider_desc = provider_info.get("description", "")
         default_model = provider_info.get("default_model", "")
+        vision_model = provider_info.get("vision_model", "")
         
         return {
-            "response_type": "ephemeral",
+            "response_type": "in_channel",
             "text": f"現在の野良猫AIプロバイダー: *{provider_name}* ({provider_desc})\n"
-                   f"使用モデル: {default_model}\n\n"
+                    f"使用モデル: {default_model}\n"
+                    f"使用モデル(画像解析): {vision_model}\n\n"
                     "プロバイダーを変更するには:\n"
                     "`/nai -s grok` または `/nai -s openai`"
         }

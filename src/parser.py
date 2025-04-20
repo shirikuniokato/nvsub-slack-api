@@ -154,26 +154,26 @@ def get_help_text() -> str:
 スパチャコマンドの使用方法:
 
 1. スパチャの登録:
-   /superchat add <金額> [-m|--message <メッセージ>] [-y|--youtube <URL(証跡として残すくらい)>] [-d|--date <日付>]
+   /sc add <金額> [-m|--message <メッセージ>] [-y|--youtube <URL(証跡として残すくらい)>] [-d|--date <日付>]
    
    例:
-   /superchat add 1000 -m こんにちは！
-   /superchat add 500 --message "長いメッセージもOK" --youtube https://youtube.com/watch?v=123456
-   /superchat add 2000 --date 2025-04-13  # 特定の日付を指定（YYYY-MM-DD形式）
+   /sc add 1000 -m こんにちは！
+   /sc add 500 --message "長いメッセージもOK" --youtube https://youtube.com/watch?v=123456
+   /sc add 2000 --date 2025-04-13  # 特定の日付を指定（YYYY-MM-DD形式）
    
    注意:
    - 日付を指定しない場合は現在の日付が使用されます
    - 日付はYYYY-MM-DD形式で指定してください（例: 2025-04-13）
 
 2. スパチャの統計表示:
-   /superchat stat [-u|--user <ユーザー名>] [-d|--days <日数>] [-a|--all] [-m|--me]
+   /sc stat [-u|--user <ユーザー名>] [-d|--days <日数>] [-a|--all] [-m|--me]
    
    例:
-   /superchat stat                # 過去30日間の統計を表示
-   /superchat stat -u @username   # 特定ユーザーの統計を表示（Slackのメンション形式）
-   /superchat stat --days 7       # 過去7日間の統計を表示
-   /superchat stat --all          # 全期間の統計を表示
-   /superchat stat --me           # 自分の統計のみを表示
+   /sc stat                # 過去30日間の統計を表示
+   /sc stat -u @username   # 特定ユーザーの統計を表示（Slackのメンション形式）
+   /sc stat --days 7       # 過去7日間の統計を表示
+   /sc stat --all          # 全期間の統計を表示
+   /sc stat --me           # 自分の統計のみを表示
    
    注意:
    - ユーザー名は@usernameのようにSlackのメンション形式で指定することを推奨

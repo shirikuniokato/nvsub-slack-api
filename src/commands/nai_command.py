@@ -38,7 +38,12 @@ async def nai_command(request: Request, form_data: Dict[str, Any] = Body(...)):
                         "`/nai` - 現在のプロバイダーを表示\n"
                         "`/nai -s grok` - プロバイダーをGrokに設定\n"
                         "`/nai -s openai` - プロバイダーをOpenAIに設定\n"
-                        "`/nai -h` - このヘルプを表示"
+                        "`/nai -h` - このヘルプを表示",
+                "attachments": [
+                    {
+                        "text": "Tip: Slackアプリの設定で「Command Hint」を `[現在のモデル確認 | -s <grok|openai> モデル切替 | -h ヘルプ]` に設定すると便利です。"
+                    }
+                ]
             }
         
         # プロバイダーを設定
@@ -84,10 +89,12 @@ async def nai_command(request: Request, form_data: Dict[str, Any] = Body(...)):
         provider_info = get_provider_info(current_provider)
         provider_name = provider_info.get("name", current_provider.capitalize())
         provider_desc = provider_info.get("description", "")
+        default_model = provider_info.get("default_model", "")
         
         return {
             "response_type": "ephemeral",
-            "text": f"現在の野良猫AIプロバイダー: *{provider_name}* ({provider_desc})\n\n"
+            "text": f"現在の野良猫AIプロバイダー: *{provider_name}* ({provider_desc})\n"
+                   f"使用モデル: {default_model}\n\n"
                     "プロバイダーを変更するには:\n"
                     "`/nai -s grok` または `/nai -s openai`"
         }

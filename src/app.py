@@ -27,7 +27,7 @@ app.post("/update_persona")(update_persona_command)
 app.post("/ai_provider")(nai_command)
 
 # AIモデル一覧取得コマンドのエンドポイントを登録
-app.post("/get-models")(get_models_command)
+app.post("/get_models")(get_models_command)
 
 # Slackイベントを処理するエンドポイント
 @app.post("/events")
@@ -126,4 +126,4 @@ async def root():
     """
     ルートエンドポイント - APIが稼働していることを確認
     """
-    return {"status": "API is running", "endpoints": ["/superchat", "/update_persona", "/ai_provider", "/get-models", "/events", "/interactions"]}
+    return {"status": "API is running", "endpoints": ["/superchat", "/update_persona", "/ai_provider", "/get_models", "/events", "/interactions"]}

@@ -9,6 +9,7 @@ from commands.aibot import app_mention_endpoint
 from commands.update_persona_command import update_persona_command, handle_update_persona_submission
 from commands.app_home import handle_app_home_opened, handle_app_home_interaction
 from commands.nai_command import nai_command
+from commands.get_models_command import get_models_command
 
 # FastAPIのインスタンス作成
 app = FastAPI(title="Slash Commands API", description="Slackのスラッシュコマンドを処理するAPI")
@@ -24,6 +25,9 @@ app.post("/update_persona")(update_persona_command)
 
 # 野良猫AIプロバイダー管理コマンドのエンドポイントを登録
 app.post("/ai_provider")(nai_command)
+
+# AIモデル一覧取得コマンドのエンドポイントを登録
+app.post("/get-models")(get_models_command)
 
 # Slackイベントを処理するエンドポイント
 @app.post("/events")
@@ -122,4 +126,4 @@ async def root():
     """
     ルートエンドポイント - APIが稼働していることを確認
     """
-    return {"status": "API is running", "endpoints": ["/superchat", "/update_persona", "/ai_provider", "/events", "/interactions"]}
+    return {"status": "API is running", "endpoints": ["/superchat", "/update_persona", "/ai_provider", "/get-models", "/events", "/interactions"]}

@@ -1,7 +1,11 @@
 import json
 import os
 import datetime
+from datetime import timezone, timedelta
 from typing import Dict, Any, List, Optional
+
+# 日本標準時（JST）のタイムゾーン（UTC+9）
+JST = timezone(timedelta(hours=+9))
 
 # ファイルパス
 SUPERCHAT_DATA_FILE = "./data/superchat_data.json"
@@ -75,9 +79,9 @@ def add_history_entry(history_file: str, action: str, details: Dict[str, Any], u
     # 現在の履歴を読み込む
     history = load_history(history_file)
     
-    # 新しいエントリを作成
+    # 新しいエントリを作成（タイムスタンプはJST）
     entry = {
-        "timestamp": datetime.datetime.now().isoformat(),
+        "timestamp": datetime.datetime.now(JST).isoformat(),
         "action": action,
         "details": details
     }

@@ -1,6 +1,6 @@
 from typing import Dict, Any
-from datetime import datetime
-from data.handlers import load_superchat_data, save_superchat_data
+from datetime import datetime, timezone, timedelta
+from data.handlers import load_superchat_data, save_superchat_data, JST
 from utils.display_name import get_display_name
 
 def handle_add_command(
@@ -42,13 +42,15 @@ def handle_add_command(
     if date_str:
         # 日付が指定されている場合はその日付を使用
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-        # 現在の時刻情報を追加
-        now = datetime.now()
+        # 現在の時刻情報を追加（JST）
+        now = datetime.now(JST)
         date_obj = date_obj.replace(hour=now.hour, minute=now.minute, second=now.second, microsecond=now.microsecond)
+        # タイムゾーン情報を追加
+        date_obj = date_obj.replace(tzinfo=JST)
         timestamp = date_obj.isoformat()
     else:
-        # 指定がない場合は現在日時
-        timestamp = datetime.now().isoformat()
+        # 指定がない場合は現在日時（JST）
+        timestamp = datetime.now(JST).isoformat()
     
     # 新しいスーパーチャットデータを追加
     new_superchat = {

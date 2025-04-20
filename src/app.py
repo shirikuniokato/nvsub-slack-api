@@ -56,6 +56,7 @@ async def events_endpoint(request: Request):
         return JSONResponse(status_code=400, content={"error": f"Invalid JSON payload: {str(e)}"})
     except Exception as e:
         print(f"Error in events_endpoint: {str(e)}")
+        print(f"Payload: {payload}")
         import traceback
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": f"Internal server error: {str(e)}"})
@@ -107,6 +108,7 @@ async def interactions_endpoint(request: Request):
         return JSONResponse(status_code=400, content={"error": f"Invalid JSON payload: {str(e)}"})
     except Exception as e:
         print(f"Error in interactions_endpoint: {str(e)}")
+        print(f"Payload: {payload_json}")
         import traceback
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": f"Internal server error: {str(e)}"})

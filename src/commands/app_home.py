@@ -37,9 +37,15 @@ async def handle_app_home_opened(request: Request, payload: Dict[str, Any]) -> D
             current_persona = "ペルソナ設定ファイルの読み込みに失敗しました"
         
         # 現在のAIプロバイダーを取得
-        current_provider = get_current_provider()
-        grok_info = get_provider_info("grok")
-        openai_info = get_provider_info("openai")
+        try:
+            current_provider = get_current_provider()
+            grok_info = get_provider_info("grok")
+            openai_info = get_provider_info("openai")
+        except Exception as e:
+            print(f"AIプロバイダー設定の読み込みに失敗しました: {str(e)}")
+            current_provider = "grok"
+            grok_info = {"name": "Grok", "description": "Grok AI (X.AI)"}
+            openai_info = {"name": "OpenAI", "description": "OpenAI GPT"}
         
         # App Homeのビュー定義
         view = {
@@ -183,8 +189,12 @@ async def handle_app_home_interaction(request: Request, payload: Dict[str, Any])
             # プロバイダー名を取得
             provider = "grok" if action_id == "select_provider_grok" else "openai"
             
-            # プロバイダーを設定
-            success = set_current_provider(provider)
+            try:
+                # プロバイダーを設定
+                success = set_current_provider(provider)
+            except Exception as e:
+                print(f"AIプロバイダーの設定に失敗しました: {str(e)}")
+                success = False
             
             if success:
                 provider_info = get_provider_info(provider)

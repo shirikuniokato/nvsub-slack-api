@@ -82,11 +82,16 @@ def call_api(prompt, character=None, conversation_history=None):
     """
     現在の設定に基づいて適切なAI APIを呼び出す関数
     """
-    provider = get_current_provider()
-    
-    if provider == "openai":
-        return call_openai_api(prompt, character, conversation_history)
-    else:  # デフォルトはGrok
+    try:
+        provider = get_current_provider()
+        
+        if provider == "openai":
+            return call_openai_api(prompt, character, conversation_history)
+        else:  # デフォルトはGrok
+            return call_grok_api_original(prompt, character, conversation_history)
+    except Exception as e:
+        print(f"API呼び出しエラー: {str(e)}")
+        # エラーが発生した場合はGrokをデフォルトとして使用
         return call_grok_api_original(prompt, character, conversation_history)
 
 # プロバイダーに基づいてストリーミングAPIを呼び出す関数
@@ -94,11 +99,16 @@ def call_api_streaming(prompt, character=None, conversation_history=None, callba
     """
     現在の設定に基づいて適切なAI APIをストリーミングモードで呼び出す関数
     """
-    provider = get_current_provider()
-    
-    if provider == "openai":
-        return call_openai_api_streaming(prompt, character, conversation_history, callback)
-    else:  # デフォルトはGrok
+    try:
+        provider = get_current_provider()
+        
+        if provider == "openai":
+            return call_openai_api_streaming(prompt, character, conversation_history, callback)
+        else:  # デフォルトはGrok
+            return call_grok_api_streaming_original(prompt, character, conversation_history, callback)
+    except Exception as e:
+        print(f"ストリーミングAPI呼び出しエラー: {str(e)}")
+        # エラーが発生した場合はGrokをデフォルトとして使用
         return call_grok_api_streaming_original(prompt, character, conversation_history, callback)
 
 async def process_and_reply(text: str, channel: str, thread_ts: str, character: Optional[Dict[str, str]] = None, bot_user_id: str = None):

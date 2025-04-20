@@ -186,8 +186,52 @@ def get_provider_info(provider: Optional[str] = None) -> Dict[str, Any]:
     providers = config.get("providers", {})
     provider_info = providers.get(provider, {}).copy()
     
-    # 環境変数からモデル情報を取得して上書き
-    provider_info["default_model"] = get_model_from_env(provider, "default")
-    provider_info["vision_model"] = get_model_from_env(provider, "vision")
+    # JSONファイルに定義されていない場合は環境変数から取得
+    if not provider_info.get("default_model"):
+        provider_info["default_model"] = get_model_from_env(provider, "default")
+    if not provider_info.get("vision_model"):
+        provider_info["vision_model"] = get_model_from_env(provider, "vision")
     
     return provider_info
+
+def set_model(provider: str, model: str, model_type: str = "default") -> bool:
+    """
+    モデルをJSONファイルに設定する関数
+    
+    引数:
+        provider: プロバイダー名 ("grok" または "openai")
+        model: 設定するモデル名
+        model_type: モデルタイプ ("default" または "vision")
+    
+    戻り値:
+        設定に成功した場合はTrue、失敗した場合はFalse
+    """
+    try:
+        if provider not in ["grok", "openai"]:
+            print(f"無効なプロバイダー名: {provider}")
+            return False
+        
+        if model_type not in ["default", "vision"]:
+            print(f"無効なモデルタイプ: {model_type}")
+            return False
+        
+        # 設定を読み込む
+        config = load_config()
+        
+        # モデルタイプに応じたキー名を設定
+        model_key = "default_model" if model_type == "default" else "vision_model"
+        
+        # モデルを設定
+        if provider in config["providers"]:
+            config["providers"][provider][model_key] = model
+            
+            # 設定を保存
+            return save_config(config)
+        else:
+            print(f"プロバイダー {provider} が設定に存在しません")
+            return False
+    except Exception as e:
+        print(f"モデル設定エラー: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False

@@ -1,14 +1,11 @@
 import os
 from typing import Dict, Any, Optional, Generator, Callable
 from openai import OpenAI
+from utils.ai_provider import get_provider_info
 
 # Grok APIのエンドポイントとAPIキー（環境変数から取得）
 GROK_API_KEY = os.environ.get("GROK_API_KEY")
 GROK_API_BASE_URL = os.environ.get("GROK_API_BASE_URL", "https://api.x.ai/v1")
-
-# デフォルトモデルと画像解析可能なモデル
-DEFAULT_MODEL = os.environ.get("GROK_API_MODEL", "grok-3-latest")
-VISION_MODEL = os.environ.get("GROK_VISION_MODEL", "grok-2-vision-latest")
 
 def contains_image(messages: list) -> bool:
     """
@@ -95,8 +92,13 @@ def call_grok_api(
         # 画像が含まれているかどうかを判定
         has_image = contains_image(messages)
         
+        # プロバイダー情報からモデルを取得
+        provider_info = get_provider_info("grok")
+        default_model = provider_info.get("default_model", "grok-3-latest")
+        vision_model = provider_info.get("vision_model", "grok-2-vision-latest")
+        
         # 使用するモデルを選択
-        model = VISION_MODEL if has_image else DEFAULT_MODEL
+        model = vision_model if has_image else default_model
         print(f"使用するモデル: {model} (画像あり: {has_image})")
         
         # APIリクエスト
@@ -188,8 +190,13 @@ def call_grok_api_streaming(
         # 画像が含まれているかどうかを判定
         has_image = contains_image(messages)
         
+        # プロバイダー情報からモデルを取得
+        provider_info = get_provider_info("grok")
+        default_model = provider_info.get("default_model", "grok-3-latest")
+        vision_model = provider_info.get("vision_model", "grok-2-vision-latest")
+        
         # 使用するモデルを選択
-        model = VISION_MODEL if has_image else DEFAULT_MODEL
+        model = vision_model if has_image else default_model
         print(f"使用するモデル: {model} (画像あり: {has_image})")
         
         # ストリーミングモードでAPIリクエスト

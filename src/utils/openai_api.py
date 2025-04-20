@@ -1,13 +1,10 @@
 import os
 from typing import Dict, Any, Optional, Generator, Callable
 from openai import OpenAI
+from utils.ai_provider import get_provider_info
 
 # OpenAI APIのAPIキー（環境変数から取得）
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-
-# デフォルトモデルと画像解析可能なモデル
-DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
-VISION_MODEL = os.environ.get("OPENAI_VISION_MODEL", "gpt-4o")
 
 def contains_image(messages: list) -> bool:
     """
@@ -93,8 +90,13 @@ def call_openai_api(
         # 画像が含まれているかどうかを判定
         has_image = contains_image(messages)
         
+        # プロバイダー情報からモデルを取得
+        provider_info = get_provider_info("openai")
+        default_model = provider_info.get("default_model", "gpt-4o")
+        vision_model = provider_info.get("vision_model", "gpt-4o")
+        
         # 使用するモデルを選択
-        model = VISION_MODEL if has_image else DEFAULT_MODEL
+        model = vision_model if has_image else default_model
         print(f"使用するモデル: {model} (画像あり: {has_image})")
         
         # APIリクエスト
@@ -185,8 +187,13 @@ def call_openai_api_streaming(
         # 画像が含まれているかどうかを判定
         has_image = contains_image(messages)
         
+        # プロバイダー情報からモデルを取得
+        provider_info = get_provider_info("openai")
+        default_model = provider_info.get("default_model", "gpt-4o")
+        vision_model = provider_info.get("vision_model", "gpt-4o")
+        
         # 使用するモデルを選択
-        model = VISION_MODEL if has_image else DEFAULT_MODEL
+        model = vision_model if has_image else default_model
         print(f"使用するモデル: {model} (画像あり: {has_image})")
         
         # ストリーミングモードでAPIリクエスト

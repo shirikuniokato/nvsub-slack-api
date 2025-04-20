@@ -39,16 +39,22 @@ async def get_claude_models() -> List[str]:
         利用可能なモデルのリスト
     """
     try:
-        # Anthropic APIには直接モデル一覧を取得するエンドポイントがないため、
-        # 既知のモデルリストを返す
-        return [
-            "claude-3-opus-20240229",
-            "claude-3-sonnet-20240229",
-            "claude-3-haiku-20240307",
-            "claude-2.1",
-            "claude-2.0",
-            "claude-instant-1.2"
-        ]
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            return ["APIキーが設定されていません"]
+        
+        # Anthropicクライアントの初期化
+        client = Anthropic()
+        
+        # モデル一覧を取得
+        models = client.models.list()
+        
+        # モデル名のリストを取得
+        model_names = [model.id for model in models.data]
+        
+        # Claudeモデルのみをフィルタリング（不要かもしれませんが念のため）
+        claude_models = [name for name in model_names if "claude" in name.lower()]
+        
+        return sorted(claude_models)
     except Exception as e:
         print(f"Claudeモデル取得エラー: {str(e)}")
         return [f"エラー: {str(e)}"]

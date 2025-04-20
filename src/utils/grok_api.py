@@ -105,7 +105,7 @@ def call_grok_api(
         completion = client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=0.7,  # 応答の多様性（0.0〜1.0）
+            temperature=1.0,  # 応答の多様性（0.0〜1.0）
         )
         
         # 応答テキストの取得
@@ -203,7 +203,7 @@ def call_grok_api_streaming(
         stream = client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=0.7,  # 応答の多様性（0.0〜1.0）
+            temperature=1.0,  # 応答の多様性（0.0〜1.0）
             stream=True,  # ストリーミングモードを有効化
         )
         

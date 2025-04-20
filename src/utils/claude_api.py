@@ -129,14 +129,29 @@ def convert_to_claude_messages(messages: list) -> list:
                     elif item_type == "document" and item.get("source", {}).get("type") == "base64":
                         media_type = item.get("source", {}).get("media_type", "application/pdf")
                         base64_data = item.get("source", {}).get("data", "")
-                        claude_content.append({
-                            "type": "document",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": base64_data
-                            }
-                        })
+                        
+                        # 新しい形式でbase64オブジェクトを作成
+                        if item.get("source", {}).get("base64"):
+                            # すでに新しい形式の場合はそのまま使用
+                            claude_content.append({
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "base64": item.get("source", {}).get("base64")
+                                }
+                            })
+                        else:
+                            # 古い形式から新しい形式に変換
+                            claude_content.append({
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "base64": {
+                                        "media_type": "application/pdf",
+                                        "data": base64_data
+                                    }
+                                }
+                            })
                 
                 claude_messages.append({
                     "role": role,

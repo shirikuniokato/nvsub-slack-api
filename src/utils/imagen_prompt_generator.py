@@ -290,8 +290,9 @@ Imagen 3 プロンプトの作成に関するその他のヒント:
         
         # 応答テキストの取得
         optimized_prompt = response.text.strip()
+        optimized_prompt += "\n\n以上の条件で必ず画像を生成してください。"
         
-        print(f"元のプロンプト: {user_prompt}")
+        print(f"元のプロンプト: {messages}")
         print(f"最適化されたプロンプト: {optimized_prompt}")
         
         return optimized_prompt, None

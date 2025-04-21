@@ -60,42 +60,23 @@ def generate_imagen_prompt_openai(user_prompt: List[Dict[str, Any]]) -> Tuple[st
 5. アートスタイル（写実的、アニメ調、水彩画風など）
 6. 画像の品質に関する指定（高解像度、詳細、鮮明さなど）
 
-DALL-E 3 プロンプトの作成に関するヒント:
-
-- 具体的な形容詞や副詞を使用して、明確な画像を描写する
-- 必要に応じて背景情報を含める
-- 特定のアーティストやスタイルを参照すると効果的
-- 人物の表情や姿勢、服装などの詳細を指定する
-- 光の当たり方や色調など、雰囲気を表現する言葉を使う
-- 「photorealistic」「8K」「detailed」などの品質を表す言葉を含める
-
 注意事項：
 - 日本語のプロンプトを生成してください
-- 簡潔かつ具体的に記述してください（200-300文字程度）
+- 簡潔かつ具体的に記述してください
 - プロンプトの前後に余計な説明や注釈を入れないでください
 - 最適化されたプロンプトのみを出力してください
 """
         
-        # ユーザーメッセージからテキスト部分を抽出
-        user_text = ""
-        for message in user_prompt:
-            if message.get("role") == "user":
-                if isinstance(message.get("content"), list):
-                    for content in message.get("content", []):
-                        if isinstance(content, dict) and content.get("type") == "text":
-                            user_text += content.get("text", "") + " "
-                elif isinstance(message.get("content"), str):
-                    user_text += message.get("content", "") + " "
-        
-        user_text = user_text.strip()
-        if not user_text:
-            user_text = "画像を生成してください"
-        
         # APIリクエスト用のメッセージを構築
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text}
+            {"role": "system", "content": system_prompt}
         ]
+        
+        # user_promptからrole:modelを除外し、残りをmessagesに追加
+        filtered_user_prompt = [
+            message for message in user_prompt if message.get("role") != "system"
+        ]
+        messages.extend(filtered_user_prompt)
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("openai")
@@ -111,7 +92,7 @@ DALL-E 3 プロンプトの作成に関するヒント:
         # 応答テキストの取得
         optimized_prompt = response.choices[0].message.content.strip()
         
-        print(f"元のプロンプト: {user_text}")
+        print(f"元のプロンプト: {messages}")
         print(f"DALL-E用に最適化されたプロンプト: {optimized_prompt}")
         
         return optimized_prompt, None
@@ -171,31 +152,21 @@ Grok画像生成プロンプトの作成に関するヒント:
 
 注意事項：
 - 日本語のプロンプトを生成してください
-- 簡潔かつ具体的に記述してください（200-300文字程度）
+- 
 - プロンプトの前後に余計な説明や注釈を入れないでください
 - 最適化されたプロンプトのみを出力してください
 """
         
-        # ユーザーメッセージからテキスト部分を抽出
-        user_text = ""
-        for message in user_prompt:
-            if message.get("role") == "user":
-                if isinstance(message.get("content"), list):
-                    for content in message.get("content", []):
-                        if isinstance(content, dict) and content.get("type") == "text":
-                            user_text += content.get("text", "") + " "
-                elif isinstance(message.get("content"), str):
-                    user_text += message.get("content", "") + " "
-        
-        user_text = user_text.strip()
-        if not user_text:
-            user_text = "画像を生成してください"
-        
         # APIリクエスト用のメッセージを構築
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text}
+            {"role": "system", "content": system_prompt}
         ]
+        
+        # user_promptからrole:modelを除外し、残りをmessagesに追加
+        filtered_user_prompt = [
+            message for message in user_prompt if message.get("role") != "system"
+        ]
+        messages.extend(filtered_user_prompt)
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("grok")
@@ -211,7 +182,7 @@ Grok画像生成プロンプトの作成に関するヒント:
         # 応答テキストの取得
         optimized_prompt = response.choices[0].message.content.strip()
         
-        print(f"元のプロンプト: {user_text}")
+        print(f"元のプロンプト: {messages}")
         print(f"Grok用に最適化されたプロンプト: {optimized_prompt}")
         
         return optimized_prompt, None
@@ -253,19 +224,11 @@ def generate_imagen_prompt_gemini(user_prompt: List[Dict[str, Any]]) -> Tuple[st
 5. アートスタイル（写実的、アニメ調、水彩画風など）
 6. 画像の品質に関する指定（高解像度、詳細、鮮明さなど）
 
-Imagen 3 プロンプトの作成に関するその他のヒント:
-
-わかりやすい表現を使用する: 具体的な形容詞や副詞を使用して、Imagen 3 の明確な画像を描きます。
-コンテキストを提供する: 必要に応じて、AI の理解を助けるために背景情報を含めます。
-特定のアーティストやスタイルを参照する: 特定の美学を念頭に置いている場合は、特定のアーティストや芸術運動を参照すると役に立ちます。
-プロンプト エンジニアリング ツールを使用する: プロンプトを改良して最適な結果を得るために、プロンプト エンジニアリング ツールやリソースを検討してください。
-個人写真やグループ写真の顔の細部を補正する:
-写真の焦点として顔の詳細を指定します（たとえば、プロンプトで「ポートレート」という単語を使用します）。
-
 注意事項：
 - 日本語のプロンプトを生成してください
-- 簡潔かつ具体的に記述してください（200-300文字程度）
+- 簡潔かつ具体的に記述してください
 - プロンプトの前後に余計な説明や注釈を入れないでください
+- 画像生成の条件のみを出力してください
 - 最適化されたプロンプトのみを出力してください
 - 必ず、これから画像を生成するように指示を出してください
 
@@ -276,7 +239,11 @@ Imagen 3 プロンプトの作成に関するその他のヒント:
             "role": "model",
             "parts": [{"text": system_prompt}]
         }
-        messages = [system_message] + user_prompt
+        # user_prompt から role: model を除外
+        filtered_user_prompt = [
+            message for message in user_prompt if message.get("role") != "model"
+        ]
+        messages = [system_message] + filtered_user_prompt
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("gemini")
@@ -290,7 +257,8 @@ Imagen 3 プロンプトの作成に関するその他のヒント:
         
         # 応答テキストの取得
         optimized_prompt = response.text.strip()
-        optimized_prompt += "\n\n以上の条件で必ず画像を生成してください。"
+        optimized_prompt += "\n\n上記の条件で画像を生成してください。" 
+
         
         print(f"元のプロンプト: {messages}")
         print(f"最適化されたプロンプト: {optimized_prompt}")

@@ -4,7 +4,7 @@ from io import BytesIO
 from typing import Dict, Any, Optional, Generator, Callable, List, Tuple, Union, Literal
 from PIL import Image
 from google import genai
-from google.generativeai import types
+from google.genai import types
 from utils.ai_provider import get_provider_info
 
 # Gemini APIのAPIキー（環境変数から取得）

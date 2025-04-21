@@ -243,7 +243,7 @@ def generate_imagen_prompt_gemini(user_prompt: List[Dict[str, Any]]) -> Tuple[st
         # プロンプト最適化のためのシステムプロンプト
         system_prompt = """
 あなたは画像生成AIのためのプロンプトを最適化する専門家です。
-ユーザーの簡潔な入力を、Imagen APIで高品質な画像を生成するための詳細なプロンプトに変換してください。
+ユーザーの簡潔な入力を、Gemini Image 3で高品質な画像を生成するための詳細なプロンプトに変換してください。
 
 以下の要素を含めて、プロンプトを強化してください：
 1. 主題の詳細な説明

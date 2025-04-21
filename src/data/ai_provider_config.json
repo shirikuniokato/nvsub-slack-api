@@ -19,8 +19,8 @@
       "name": "Claude",
       "value": "claude",
       "description": "Anthropic Claude",
-      "default_model": "claude-3-opus-20240229",
-      "vision_model": "claude-3-opus-20240229"
+      "default_model": "claude-3-7-sonnet-20250219",
+      "vision_model": "claude-3-7-sonnet-20250219"
     },
     "gemini": {
       "name": "Gemini",

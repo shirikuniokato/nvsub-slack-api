@@ -104,19 +104,28 @@ async def get_gemini_models() -> List[str]:
         # Gemini APIクライアントの初期化
         client = genai.Client()
         
-        # 利用可能なモデルを取得
-        models = client.list_models()
+        try:
+            # 新しいAPIの呼び出し方法でモデル一覧を取得
+            models = client.models.list()
+            
+            # モデル名のリストを取得
+            gemini_models = [model.name.split("/")[-1] for model in models.models if "gemini" in model.name.lower()]
+        except AttributeError:
+            # 古いAPIの呼び出し方法でモデル一覧を取得（互換性のため）
+            models = client.list_models()
+            
+            # Geminiモデルのみをフィルタリング
+            gemini_models = [model.name.split("/")[-1] for model in models if "gemini" in model.name.lower()]
         
-        # Geminiモデルのみをフィルタリング
-        gemini_models = [model.name.split("/")[-1] for model in models if "gemini" in model.name.lower()]
-        
-        # モデルが取得できない場合は、環境変数から取得
+        # モデルが取得できない場合は、デフォルトモデルを使用
         if not gemini_models:
-            default_model = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
-            vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-1.5-pro-vision")
+            default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+            vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-2.0-flash-vision")
             gemini_models = [
                 default_model,
                 vision_model,
+                "gemini-1.5-pro",
+                "gemini-1.5-pro-vision",
                 "gemini-1.5-flash",
                 "gemini-1.0-pro",
                 "gemini-1.0-pro-vision"
@@ -126,12 +135,14 @@ async def get_gemini_models() -> List[str]:
         return sorted(list(set(gemini_models)))
     except Exception as e:
         print(f"Geminiモデル取得エラー: {str(e)}")
-        # エラーが発生した場合は、環境変数から取得
-        default_model = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
-        vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-1.5-pro-vision")
+        # エラーが発生した場合は、デフォルトモデルを使用
+        default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+        vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-2.0-flash-vision")
         gemini_models = [
             default_model,
             vision_model,
+            "gemini-1.5-pro",
+            "gemini-1.5-pro-vision",
             "gemini-1.5-flash",
             "gemini-1.0-pro",
             "gemini-1.0-pro-vision"

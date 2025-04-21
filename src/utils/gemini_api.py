@@ -153,8 +153,8 @@ def call_gemini_api(
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("gemini")
-        default_model = provider_info.get("default_model", "gemini-1.5-pro")
-        vision_model = provider_info.get("vision_model", "gemini-1.5-pro-vision")
+        default_model = provider_info.get("default_model", "gemini-2.0-flash")
+        vision_model = provider_info.get("vision_model", "gemini-2.0-flash-vision")
         
         # 使用するモデルを選択
         model_name = vision_model if has_image else default_model
@@ -163,14 +163,11 @@ def call_gemini_api(
         # Gemini形式にメッセージを変換
         gemini_messages = convert_messages_to_gemini_format(messages)
         
-        # モデルを取得
-        model = client.GenerativeModel(model_name)
-        
-        # チャット開始
-        chat = model.start_chat(history=[])
-        
-        # メッセージを送信
-        response = chat.send_message(gemini_messages)
+        # 新しいAPIの呼び出し方法
+        response = client.models.generate_content(
+            model=model_name,
+            contents=gemini_messages
+        )
         
         # 応答テキストの取得
         return response.text
@@ -253,8 +250,8 @@ def call_gemini_api_streaming(
         
         # プロバイダー情報からモデルを取得
         provider_info = get_provider_info("gemini")
-        default_model = provider_info.get("default_model", "gemini-1.5-pro")
-        vision_model = provider_info.get("vision_model", "gemini-1.5-pro-vision")
+        default_model = provider_info.get("default_model", "gemini-2.0-flash")
+        vision_model = provider_info.get("vision_model", "gemini-2.0-flash-vision")
         
         # 使用するモデルを選択
         model_name = vision_model if has_image else default_model
@@ -263,18 +260,15 @@ def call_gemini_api_streaming(
         # Gemini形式にメッセージを変換
         gemini_messages = convert_messages_to_gemini_format(messages)
         
-        # モデルを取得
-        model = client.GenerativeModel(model_name)
-        
-        # チャット開始
-        chat = model.start_chat(history=[])
-        
-        # ストリーミングモードでメッセージを送信
-        response = chat.send_message(gemini_messages, stream=True)
+        # 新しいAPIの呼び出し方法（ストリーミング）
+        response = client.models.generate_content_stream(
+            model=model_name,
+            contents=gemini_messages
+        )
         
         # 応答を逐次処理
         for chunk in response:
-            if chunk.text:
+            if hasattr(chunk, 'text') and chunk.text:
                 content = chunk.text
                 if callback:
                     # 完了フラグはFalse（まだストリーミング中）

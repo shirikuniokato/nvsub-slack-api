@@ -164,7 +164,7 @@ def call_gemini_api(
         gemini_messages = convert_messages_to_gemini_format(messages)
         
         # モデルを取得
-        model = client.get_model(model_name)
+        model = client.GenerativeModel(model_name)
         
         # チャット開始
         chat = model.start_chat(history=[])
@@ -264,7 +264,7 @@ def call_gemini_api_streaming(
         gemini_messages = convert_messages_to_gemini_format(messages)
         
         # モデルを取得
-        model = client.get_model(model_name)
+        model = client.GenerativeModel(model_name)
         
         # チャット開始
         chat = model.start_chat(history=[])

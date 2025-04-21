@@ -87,12 +87,41 @@ async def get_grok_models() -> List[str]:
         print(f"Grokモデル取得エラー: {str(e)}")
         return [f"エラー: {str(e)}"]
 
+async def get_gemini_models() -> List[str]:
+    """
+    Gemini APIから利用可能なモデルの一覧を取得する関数
+    
+    戻り値:
+        利用可能なモデルのリスト
+    """
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        api_base = "https://generativelanguage.googleapis.com/v1beta/models"
+        
+        if not api_key:
+            return ["APIキーが設定されていません"]
+        
+        # 現時点ではGemini APIからモデル一覧を直接取得するのは難しいため、
+        # 一般的に利用可能なモデルを静的に返す
+        gemini_models = [
+            "gemini-1.5-pro",
+            "gemini-1.5-pro-vision",
+            "gemini-1.5-flash",
+            "gemini-1.0-pro",
+            "gemini-1.0-pro-vision"
+        ]
+        
+        return gemini_models
+    except Exception as e:
+        print(f"Geminiモデル取得エラー: {str(e)}")
+        return [f"エラー: {str(e)}"]
+
 async def get_available_models(provider: str = None) -> Dict[str, List[str]]:
     """
     指定されたAIプロバイダーで利用可能なモデルの一覧を取得する関数
     
     引数:
-        provider: プロバイダー名 ("grok", "openai", または "claude")
+        provider: プロバイダー名 ("grok", "openai", "claude", または "gemini")
     
     戻り値:
         プロバイダーごとのモデル一覧を含む辞書
@@ -107,6 +136,9 @@ async def get_available_models(provider: str = None) -> Dict[str, List[str]]:
     
     if provider is None or provider == "grok":
         result["grok"] = await get_grok_models()
+    
+    if provider is None or provider == "gemini":
+        result["gemini"] = await get_gemini_models()
     
     return result
 
@@ -132,6 +164,10 @@ def get_model_reference_links(provider: str, model_name: str = None) -> Dict[str
         },
         "claude": {
             "all": "https://docs.anthropic.com/ja/docs/about-claude/models/all-models#model-comparison-table",
+            "individual": None
+        },
+        "gemini": {
+            "all": "https://ai.google.dev/models/gemini",
             "individual": None
         }
     }
@@ -206,6 +242,7 @@ async def get_models_command(
                         "`/get-models -s grok` - Grokのモデル一覧を表示\n"
                         "`/get-models -s openai` - OpenAIのモデル一覧を表示\n"
                         "`/get-models -s claude` - Claudeのモデル一覧を表示\n"
+                        "`/get-models -s gemini` - Geminiのモデル一覧を表示\n"
                         "`/get-models -h` - このヘルプを表示"
             }
         
@@ -218,11 +255,11 @@ async def get_models_command(
             if len(args) > set_index + 1:
                 provider = args[set_index + 1].lower()
                 
-                if provider not in ["grok", "openai", "claude"]:
+                if provider not in ["grok", "openai", "claude", "gemini"]:
                     return {
                         "response_type": "ephemeral",
                         "text": f"エラー: 無効なプロバイダー名 '{provider}'\n"
-                                "有効なプロバイダー: grok, openai, claude"
+                                "有効なプロバイダー: grok, openai, claude, gemini"
                     }
         
         # モデル一覧を取得
@@ -233,7 +270,8 @@ async def get_models_command(
             provider_name = {
                 "grok": "Grok",
                 "openai": "OpenAI",
-                "claude": "Claude"
+                "claude": "Claude",
+                "gemini": "Gemini"
             }.get(provider, provider.capitalize())
             
             models = models_dict.get(provider, [])
@@ -271,7 +309,8 @@ async def get_models_command(
                 provider_name = {
                     "grok": "Grok",
                     "openai": "OpenAI",
-                    "claude": "Claude"
+                    "claude": "Claude",
+                    "gemini": "Gemini"
                 }.get(provider, provider.capitalize())
                 
                 # 参考リンクを取得

@@ -21,6 +21,13 @@
       "description": "Anthropic Claude",
       "default_model": "claude-3-opus-20240229",
       "vision_model": "claude-3-opus-20240229"
+    },
+    "gemini": {
+      "name": "Gemini",
+      "value": "gemini",
+      "description": "Google Gemini",
+      "default_model": "gemini-1.5-pro",
+      "vision_model": "gemini-1.5-pro-vision"
     }
   }
 }

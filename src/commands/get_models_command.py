@@ -96,7 +96,7 @@ async def get_gemini_models() -> List[str]:
         利用可能なモデルのリスト
     """
     try:
-        api_key = os.environ.get("GEMINI_API_KEY")
+        api_key = os.environ.get("GOOGLE_API_KEY")
         
         if not api_key:
             return ["APIキーが設定されていません"]

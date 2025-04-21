@@ -4,10 +4,8 @@ from google import genai
 from utils.ai_provider import get_provider_info
 
 # Gemini APIのAPIキー（環境変数から取得）
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-# 環境変数を設定（google-genai 0.1.0 では必要）
-os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
 
 def contains_image(messages: list) -> bool:
     """
@@ -105,12 +103,11 @@ def call_gemini_api(
     戻り値:
         Gemini APIからの応答テキスト
     """
-    if not GEMINI_API_KEY:
-        return "Gemini APIキーが設定されていません。環境変数GEMINI_API_KEYを設定してください。"
+    if not GOOGLE_API_KEY:
+        return "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
     
     # Geminiクライアントの初期化
     client = genai.Client()
-    
     # メッセージの作成（OpenAI形式）
     messages = []
     
@@ -201,8 +198,8 @@ def call_gemini_api_streaming(
     戻り値:
         応答チャンクのジェネレーター
     """
-    if not GEMINI_API_KEY:
-        error_msg = "Gemini APIキーが設定されていません。環境変数GEMINI_API_KEYを設定してください。"
+    if not GOOGLE_API_KEY:
+        error_msg = "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
         if callback:
             callback(error_msg, True)
         yield error_msg

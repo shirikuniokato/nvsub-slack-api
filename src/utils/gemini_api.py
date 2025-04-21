@@ -93,7 +93,7 @@ def should_generate_image(prompt: str) -> bool:
         client = genai.Client()
         
         # 判定用のプロンプト
-        system_prompt = """
+        instruction = """
 あなたはユーザーのメッセージが画像生成を要求しているかどうかを判定するシステムです。
 以下のルールに従って判定してください：
 
@@ -105,17 +105,14 @@ def should_generate_image(prompt: str) -> bool:
 判定結果は「YES」または「NO」のみで回答してください。
 「YES」= 画像生成要求である
 「NO」 = 画像生成要求ではない
-"""
+
+以下のメッセージを判定してください: """ + prompt
         
-        # 判定用のメッセージ
+        # 判定用のメッセージ（システムロールを使わない）
         messages = [
             {
-                "role": "system",
-                "parts": [{"text": system_prompt}]
-            },
-            {
                 "role": "user",
-                "parts": [{"text": prompt}]
+                "parts": [{"text": instruction}]
             }
         ]
         

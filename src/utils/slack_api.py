@@ -418,12 +418,25 @@ def upload_file(
         return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
     
     # メッセージテキスト
-    message_text = title if title else "画像"
+    message_text = title if title else "生成された画像"
     if initial_comment:
         message_text = f"{initial_comment}\n{message_text}"
     
     try:
-        # 画像データを直接メッセージに添付する方法
+        # 画像データを準備
+        if hasattr(file, 'read'):
+            # ファイルオブジェクトの場合
+            file.seek(0)
+            file_data = file.read()
+        elif isinstance(file, bytes):
+            # バイトデータの場合
+            file_data = file
+        else:
+            # その他の場合（ファイルパスなど）
+            with open(file, 'rb') as f:
+                file_data = f.read()
+        
+        # まずメッセージを投稿
         # APIエンドポイント
         url = "https://slack.com/api/chat.postMessage"
         
@@ -447,61 +460,67 @@ def upload_file(
         if not response.ok or not response.json().get("ok"):
             return {"ok": False, "error": f"メッセージ投稿エラー: {response.json().get('error')}"}
         
-        # 投稿したメッセージのタイムスタンプを取得
+        # 投稿したメッセージのタイムスタンプを取得（スレッドがない場合は新しいスレッドとして使用）
         message_ts = response.json().get("ts")
+        thread_ts = thread_ts if thread_ts else message_ts
         
-        # 画像データを準備
-        if hasattr(file, 'read'):
-            # ファイルオブジェクトの場合
-            file.seek(0)
-            file_data = file.read()
-        elif isinstance(file, bytes):
-            # バイトデータの場合
-            file_data = file
-        else:
-            # その他の場合（ファイルパスなど）
-            with open(file, 'rb') as f:
-                file_data = f.read()
+        # ファイル名を設定（拡張子を追加）
+        if "." not in filename and filetype != "auto":
+            filename = f"{filename}.{filetype}"
         
-        # 画像をBase64エンコード
-        import base64
-        base64_data = base64.b64encode(file_data).decode('utf-8')
+        # ファイルサイズを取得
+        file_size = len(file_data)
         
-        # 画像をメッセージに添付
-        # APIエンドポイント
-        url = "https://slack.com/api/files.upload"
+        # ファイルアップロードURLとファイルIDを取得
+        url = "https://slack.com/api/files.getUploadURLExternal"
+        headers = {"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
+        params = {"filename": filename, "length": file_size}
         
-        # マルチパートフォームデータを作成
-        import io
-        files = {
-            'file': (filename, io.BytesIO(file_data), f"image/{filetype}" if filetype != "auto" else "image/png")
-        }
-        
-        data = {
-            'channels': channels,
-            'thread_ts': thread_ts if thread_ts else message_ts,
-            'initial_comment': '',  # 既にメッセージを投稿しているので空にする
-            'title': filename
-        }
-        
-        # ヘッダー
-        headers = {
-            'Authorization': f'Bearer {SLACK_BOT_TOKEN}'
-        }
-        
-        # リクエスト送信
-        upload_response = requests.post(url, headers=headers, data=data, files=files)
+        upload_url_response = requests.get(url, headers=headers, params=params)
         
         # レスポンスのチェック
-        if not upload_response.ok or not upload_response.json().get("ok"):
-            error_msg = upload_response.json().get('error', 'Unknown error')
-            print(f"画像アップロードエラー: {error_msg}")
-            
-            # エラーメッセージを追加
+        if not upload_url_response.ok or not upload_url_response.json().get("ok"):
+            error_msg = upload_url_response.json().get('error', 'Unknown error')
+            print(f"アップロードURL取得エラー: {error_msg}")
             update_message(channels, message_ts, f"{message_text}\n(画像のアップロードに失敗しました: {error_msg})")
-            return {"ok": False, "error": f"画像アップロードエラー: {error_msg}"}
+            return {"ok": False, "error": f"アップロードURL取得エラー: {error_msg}"}
         
-        return {"ok": True, "message": response.json(), "file": upload_response.json()}
+        # アップロードURLとファイルIDを取得
+        upload_url = upload_url_response.json().get("upload_url")
+        file_id = upload_url_response.json().get("file_id")
+        
+        # ファイルをアップロード
+        upload_response = requests.post(upload_url, data=file_data)
+        
+        # レスポンスのチェック
+        if not upload_response.ok:
+            error_msg = "ファイルアップロードエラー"
+            print(f"{error_msg}: {upload_response.status_code} {upload_response.text}")
+            update_message(channels, message_ts, f"{message_text}\n(画像のアップロードに失敗しました: {error_msg})")
+            return {"ok": False, "error": error_msg}
+        
+        # ファイルアップロードを完了
+        url = "https://slack.com/api/files.completeUploadExternal"
+        headers = {
+            "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
+            "Content-Type": "application/json; charset=utf-8"
+        }
+        data = {
+            "files": [{"id": file_id, "title": title if title else filename}],
+            "channel_id": channels,
+            "thread_ts": thread_ts
+        }
+        
+        complete_response = requests.post(url, headers=headers, json=data)
+        
+        # レスポンスのチェック
+        if not complete_response.ok or not complete_response.json().get("ok"):
+            error_msg = complete_response.json().get('error', 'Unknown error')
+            print(f"アップロード完了エラー: {error_msg}")
+            update_message(channels, message_ts, f"{message_text}\n(画像のアップロードに失敗しました: {error_msg})")
+            return {"ok": False, "error": f"アップロード完了エラー: {error_msg}"}
+        
+        return {"ok": True, "message": response.json(), "file": complete_response.json()}
     
     except requests.exceptions.RequestException as e:
         return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}

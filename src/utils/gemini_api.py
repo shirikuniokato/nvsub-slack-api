@@ -6,8 +6,8 @@ from utils.ai_provider import get_provider_info
 # Gemini APIのAPIキー（環境変数から取得）
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# Gemini APIクライアントの初期化
-genai.configure(api_key=GEMINI_API_KEY)
+# 環境変数を設定（google-genai 0.1.0 では必要）
+os.environ["GOOGLE_API_KEY"] = GEMINI_API_KEY
 
 def contains_image(messages: list) -> bool:
     """

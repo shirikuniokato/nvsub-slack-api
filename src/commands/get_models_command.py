@@ -102,7 +102,6 @@ async def get_gemini_models() -> List[str]:
             return ["APIキーが設定されていません"]
         
         # Gemini APIクライアントの初期化
-        genai.configure(api_key=api_key)
         client = genai.Client()
         
         # 利用可能なモデルを取得

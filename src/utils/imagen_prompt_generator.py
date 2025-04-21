@@ -5,12 +5,12 @@ from google import genai
 # Gemini APIのAPIキー（環境変数から取得）
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-def generate_imagen_prompt(user_prompt: str) -> Tuple[str, Optional[str]]:
+def generate_imagen_prompt(user_prompt: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
     """
     ユーザーの入力プロンプトを元に、Imagen APIに最適化された画像生成プロンプトを生成する関数
     
     引数:
-        user_prompt: ユーザーからの入力プロンプト
+        user_prompt: gemini_messages 形式のリスト
     
     戻り値:
         (最適化されたプロンプト, エラーメッセージ) のタプル
@@ -37,23 +37,29 @@ def generate_imagen_prompt(user_prompt: str) -> Tuple[str, Optional[str]]:
 5. アートスタイル（写実的、アニメ調、水彩画風など）
 6. 画像の品質に関する指定（高解像度、詳細、鮮明さなど）
 
+Imagen 3 プロンプトの作成に関するその他のヒント:
+
+わかりやすい表現を使用する: 具体的な形容詞や副詞を使用して、Imagen 3 の明確な画像を描きます。
+コンテキストを提供する: 必要に応じて、AI の理解を助けるために背景情報を含めます。
+特定のアーティストやスタイルを参照する: 特定の美学を念頭に置いている場合は、特定のアーティストや芸術運動を参照すると役に立ちます。
+プロンプト エンジニアリング ツールを使用する: プロンプトを改良して最適な結果を得るために、プロンプト エンジニアリング ツールやリソースを検討してください。
+個人写真やグループ写真の顔の細部を補正する:
+写真の焦点として顔の詳細を指定します（たとえば、プロンプトで「ポートレート」という単語を使用します）。
+
 注意事項：
 - 日本語のプロンプトを生成してください
 - 簡潔かつ具体的に記述してください（200-300文字程度）
-- 不適切なコンテンツや過度に暴力的な表現は避けてください
-- 著作権で保護されたキャラクターや商標の具体的な名前は避けてください
 - プロンプトの前後に余計な説明や注釈を入れないでください
 - 最適化されたプロンプトのみを出力してください
 
 ユーザーの入力プロンプト："""
         
-        # メッセージの作成
-        messages = [
-            {
-                "role": "user", 
-                "parts": [{"text": system_prompt + user_prompt}]
-            }
-        ]
+        # システムプロンプトをユーザーメッセージとして追加し、その後にuser_promptを結合
+        system_message = {
+            "role": "user",
+            "parts": [{"text": system_prompt}]
+        }
+        messages = [system_message] + user_prompt
         
         # モデルの選択（軽量なモデルを使用）
         model_name = "gemini-1.5-flash"

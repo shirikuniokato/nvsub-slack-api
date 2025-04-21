@@ -11,12 +11,12 @@ from utils.imagen_prompt_generator import generate_imagen_prompt
 # Gemini APIのAPIキー（環境変数から取得）
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-def generate_image_with_imagen(prompt: str, number_of_images: int = 1) -> Tuple[Optional[List[Image.Image]], Optional[str]]:
+def generate_image_with_imagen(prompt: List[Dict[str, Any]], number_of_images: int = 1) -> Tuple[Optional[List[Image.Image]], Optional[str]]:
     """
     Imagen APIを使用して画像を生成する関数
     
     引数:
-        prompt: 画像生成のためのテキストプロンプト
+        prompt: 画像生成のための gemini_messages 形式のリスト
         number_of_images: 生成する画像の数（デフォルト: 1）
     
     戻り値:
@@ -32,8 +32,18 @@ def generate_image_with_imagen(prompt: str, number_of_images: int = 1) -> Tuple[
         optimized_prompt, error = generate_imagen_prompt(prompt)
         if error:
             print(f"プロンプト最適化エラー: {error}")
-            print("元のプロンプトを使用します")
-            optimized_prompt = prompt
+            print("最適化に失敗したため、最後のユーザーメッセージを使用します")
+            # 最後のユーザーメッセージのテキスト部分を取得
+            user_text = ""
+            for message in prompt:
+                if message.get("role") == "user":
+                    for part in message.get("parts", []):
+                        if "text" in part:
+                            user_text += part["text"] + " "
+            
+            optimized_prompt = user_text.strip()
+            if not optimized_prompt:
+                optimized_prompt = "画像を生成してください"
         else:
             print(f"プロンプトを最適化しました")
             print(f"元のプロンプト: {prompt}")
@@ -177,7 +187,7 @@ def convert_messages_to_gemini_format(messages: List[Dict[str, Any]]) -> List[Di
         messages: OpenAI形式のメッセージリスト
     
     戻り値:
-        Gemini形式のメッセージリスト
+        Gemini形式のメッセージリスト（role:systemは除外）
     """
     gemini_messages = []
     
@@ -185,7 +195,11 @@ def convert_messages_to_gemini_format(messages: List[Dict[str, Any]]) -> List[Di
         role = message.get("role")
         content = message.get("content", [])
         
-        # roleの変換（systemはGeminiではmodelとして扱う）
+        # systemロールのメッセージは除外
+        if role == "system":
+            continue
+            
+        # roleの変換
         gemini_role = "user" if role == "user" else "model"
         
         # contentの変換
@@ -308,19 +322,11 @@ def call_gemini_api(
         if generate_image:
             print("Imagen APIを使用して画像を生成します")
             
-            # ユーザーのプロンプトを取得
-            user_prompt = ""
-            if isinstance(prompt, dict) and "content" in prompt:
-                for item in prompt["content"]:
-                    if isinstance(item, dict) and item.get("type") == "text":
-                        user_prompt += item.get("text", "")
-                    elif isinstance(item, str):
-                        user_prompt += item
-            else:
-                user_prompt = str(prompt)
+            # Gemini形式にメッセージを変換（role:systemは除外される）
+            gemini_messages = convert_messages_to_gemini_format(messages)
             
             # Imagen APIを使用して画像を生成（1枚のみ）
-            images, error = generate_image_with_imagen(user_prompt, number_of_images=1)
+            images, error = generate_image_with_imagen(gemini_messages, number_of_images=1)
             
             if error:
                 return f"画像生成エラー: {error}"

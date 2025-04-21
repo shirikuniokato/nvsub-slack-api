@@ -417,41 +417,106 @@ def upload_file(
     if not SLACK_BOT_TOKEN:
         return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
     
-    # APIエンドポイント
-    url = "https://slack.com/api/files.upload"
-    
-    # リクエストヘッダー
-    headers = {
-        "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
-    }
-    
-    # リクエストデータ
-    data = {
-        "channels": channels,
-        "filename": filename,
-        "filetype": filetype
-    }
-    
-    # オプションパラメータの追加
-    if thread_ts:
-        data["thread_ts"] = thread_ts
-    if title:
-        data["title"] = title
-    if initial_comment:
-        data["initial_comment"] = initial_comment
-    
     try:
-        # ファイルの処理
-        files = {"file": (filename, file, f"image/{filetype}" if filetype != "auto" else None)}
+        # 画像をメッセージとして投稿する方法に変更
+        # 一時ファイルに保存
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=f".{filetype}" if filetype != "auto" else ".png", delete=False) as temp_file:
+            if hasattr(file, 'read'):
+                # ファイルオブジェクトの場合
+                file.seek(0)
+                temp_file.write(file.read())
+            elif isinstance(file, bytes):
+                # バイトデータの場合
+                temp_file.write(file)
+            else:
+                # その他の場合（ファイルパスなど）
+                with open(file, 'rb') as f:
+                    temp_file.write(f.read())
+            
+            temp_file_path = temp_file.name
         
-        # APIリクエスト
-        response = requests.post(url, headers=headers, data=data, files=files)
+        # APIエンドポイント
+        url = "https://slack.com/api/chat.postMessage"
         
-        # レスポンスのチェック
-        response.raise_for_status()
+        # リクエストヘッダー
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+        }
         
-        # JSONレスポンスの解析
-        return response.json()
+        # メッセージテキスト
+        message_text = title if title else "画像"
+        if initial_comment:
+            message_text = f"{initial_comment}\n{message_text}"
+        
+        # リクエストボディ
+        data = {
+            "channel": channels,
+            "text": message_text,
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": message_text
+                    }
+                },
+                {
+                    "type": "image",
+                    "title": {
+                        "type": "plain_text",
+                        "text": filename
+                    },
+                    "image_url": f"https://example.com/{filename}",  # 仮のURL（後で置き換えられる）
+                    "alt_text": filename
+                }
+            ]
+        }
+        
+        # スレッドの指定がある場合は追加
+        if thread_ts:
+            data["thread_ts"] = thread_ts
+        
+        # 画像をアップロードしてURLを取得
+        with open(temp_file_path, 'rb') as img_file:
+            files = {"file": (filename, img_file, f"image/{filetype}" if filetype != "auto" else "image/png")}
+            upload_response = requests.post(
+                "https://slack.com/api/files.upload",
+                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"},
+                data={"channels": channels, "filename": filename},
+                files=files
+            )
+            
+            if not upload_response.ok or not upload_response.json().get("ok"):
+                # 古いAPIが失敗した場合、直接メッセージとして投稿
+                return post_message(channels, f"{message_text}\n(画像のアップロードに失敗しました)", thread_ts)
+            
+            # 一時ファイルを削除
+            import os
+            os.unlink(temp_file_path)
+            
+            # アップロードされたファイルの情報を取得
+            file_info = upload_response.json().get("file", {})
+            
+            # 画像のURLを取得
+            image_url = file_info.get("url_private")
+            
+            if not image_url:
+                # URLが取得できない場合、直接メッセージとして投稿
+                return post_message(channels, f"{message_text}\n(画像のURLの取得に失敗しました)", thread_ts)
+            
+            # 画像URLを更新
+            data["blocks"][1]["image_url"] = image_url
+            
+            # メッセージを投稿
+            response = requests.post(url, headers=headers, json=data)
+            
+            # レスポンスのチェック
+            response.raise_for_status()
+            
+            # JSONレスポンスの解析
+            return response.json()
     
     except requests.exceptions.RequestException as e:
         return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}

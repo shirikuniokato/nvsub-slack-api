@@ -11,135 +11,122 @@ from utils.imagen_prompt_generator import generate_imagen_prompt
 # Gemini APIのAPIキー（環境変数から取得）
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-def generate_image_with_gemini_native(prompt: str) -> Tuple[Optional[Image.Image], Optional[str]]:
+def generate_image(prompt: Union[str, List[Dict[str, Any]]], number_of_images: int = 1, model_name: str = "imagen-3.0-generate-002") -> Tuple[Optional[Union[Image.Image, List[Image.Image]]], Optional[str]]:
     """
-    Gemini Native Image Generation APIを使用して画像を生成する関数
-    (gemini-2.0-flash-exp-image-generation モデルを使用)
+    画像を生成する関数
     
     引数:
-        prompt: 画像生成のためのテキストプロンプト
-    
-    戻り値:
-        (生成された画像オブジェクト, エラーメッセージ) のタプル
-        成功時は (画像オブジェクト, None)
-        失敗時は (None, エラーメッセージ)
-    """
-    if not GOOGLE_API_KEY:
-        return None, "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
-    
-    try:
-        # Geminiクライアントの初期化
-        client = genai.Client()
-        
-        # 画像生成モデル
-        model_name = "gemini-2.0-flash-exp-image-generation"
-        
-        # 画像生成リクエスト
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_modalities=['TEXT', 'IMAGE']
-            )
-        )
-        
-        # 応答から画像を取得
-        for part in response.candidates[0].content.parts:
-            if part.inline_data is not None:
-                # バイトデータからPIL Imageオブジェクトを作成
-                image = Image.open(BytesIO(part.inline_data.data))
-                return image, None
-        
-        return None, "画像が生成されませんでした。"
-    
-    except Exception as e:
-        error_msg = f"Gemini Native Image Generation APIによる画像生成中にエラーが発生しました: {str(e)}"
-        print(error_msg)
-        return None, error_msg
-
-def generate_image_with_imagen(prompt: List[Dict[str, Any]], number_of_images: int = 1) -> Tuple[Optional[List[Image.Image]], Optional[str]]:
-    """
-    Imagen APIを使用して画像を生成する関数
-    (imagen-3.0-generate-002 モデルを使用)
-    
-    引数:
-        prompt: 画像生成のための gemini_messages 形式のリスト
+        prompt: 画像生成のためのプロンプト（文字列またはGeminiメッセージ形式のリスト）
         number_of_images: 生成する画像の数（デフォルト: 1）
+        model_name: 使用する画像生成モデル名（デフォルト: "imagen-3.0-generate-002"）
     
     戻り値:
-        (生成された画像オブジェクトのリスト, エラーメッセージ) のタプル
-        成功時は ([画像オブジェクト1, 画像オブジェクト2, ...], None)
+        (生成された画像オブジェクト(単体または複数), エラーメッセージ) のタプル
+        成功時は (画像オブジェクト, None) または ([画像オブジェクト1, 画像オブジェクト2, ...], None)
         失敗時は (None, エラーメッセージ)
     """
     if not GOOGLE_API_KEY:
         return None, "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
     
     try:
-        # プロンプトを最適化（Gemini用）
-        optimized_prompt, error = generate_imagen_prompt(prompt, provider="gemini")
-        if error:
-            print(f"プロンプト最適化エラー: {error}")
-            print("最適化に失敗したため、最後のユーザーメッセージを使用します")
-            # 最後のユーザーメッセージのテキスト部分を取得
-            user_text = ""
-            for message in prompt:
-                if message.get("role") == "user":
-                    for part in message.get("parts", []):
-                        if "text" in part:
-                            user_text += part["text"] + " "
-            
-            optimized_prompt = user_text.strip()
-            if not optimized_prompt:
-                optimized_prompt = "画像を生成してください"
-        else:
-            print(f"プロンプトを最適化しました")
-            print(f"元のプロンプト: {prompt}")
-            print(f"最適化されたプロンプト: {optimized_prompt}")
-        
         # Geminiクライアントの初期化
         client = genai.Client()
         
-        # プロバイダー情報からモデルを取得
-        provider_info = get_provider_info("gemini")
-        image_model = provider_info.get("image_model", "imagen-3.0-generate-002")
+        # 使用するモデル名を表示
+        print(f"使用する画像生成モデル: {model_name}")
         
-        # モデルが設定されていない場合はデフォルトを使用
-        if not image_model:
-            image_model = "imagen-3.0-generate-002"
-            print(f"画像生成モデルが設定されていないため、デフォルトを使用します: {image_model}")
+        # プロンプトの準備
+        # 文字列の場合はそのまま使用
+        if isinstance(prompt, str):
+            text_prompt = prompt
+            # プロンプトを最適化（Gemini用）
+            optimized_prompt, error = generate_imagen_prompt([{"role": "user", "parts": [{"text": text_prompt}]}], provider="gemini")
+            if error:
+                print(f"プロンプト最適化エラー: {error}")
+                optimized_prompt = text_prompt
+            else:
+                print(f"プロンプトを最適化しました")
+                print(f"元のプロンプト: {text_prompt}")
+                print(f"最適化されたプロンプト: {optimized_prompt}")
         else:
-            print(f"使用する画像生成モデル: {image_model}")
+            # プロンプトを最適化（Gemini用）
+            optimized_prompt, error = generate_imagen_prompt(prompt, provider="gemini")
+            if error:
+                print(f"プロンプト最適化エラー: {error}")
+                print("最適化に失敗したため、最後のユーザーメッセージを使用します")
+                # 最後のユーザーメッセージのテキスト部分を取得
+                text_prompt = ""
+                for message in prompt:
+                    if message.get("role") == "user":
+                        for part in message.get("parts", []):
+                            if "text" in part:
+                                text_prompt += part["text"] + " "
+                
+                optimized_prompt = text_prompt.strip()
+                if not optimized_prompt:
+                    optimized_prompt = "画像を生成してください"
+            else:
+                print(f"プロンプトを最適化しました")
+                print(f"元のプロンプト: {prompt}")
+                print(f"最適化されたプロンプト: {optimized_prompt}")
+                text_prompt = optimized_prompt
         
-        # 画像生成の設定
-        config = types.GenerateImagesConfig(
-            number_of_images=number_of_images,
-            # 必要に応じて追加パラメータを設定
-            # aspect_ratio="1:1",
-            # resolution="1024x1024"
-        )
-        
-        # 画像生成リクエスト
-        response = client.models.generate_images(
-            model=image_model,
-            prompt=optimized_prompt,
-            config=config
-        )
-        
-        # 応答から画像を取得
-        if response.generated_images:
-            # 画像オブジェクトのリストを作成
-            images = []
-            for generated_image in response.generated_images:
-                # バイトデータからPIL Imageオブジェクトを作成
-                image = Image.open(BytesIO(generated_image.image.image_bytes))
-                images.append(image)
+        # モデル名に基づいて適切なメソッドを選択
+        if model_name == "gemini-2.0-flash-exp-image-generation":
+            # gemini-2.0-flash-exp-image-generation モデルの場合は generate_content を使用
             
-            return images, None
-        else:
+            # 画像生成リクエスト
+            response = client.models.generate_content(
+                model=model_name,
+                contents=text_prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=['TEXT', 'IMAGE']
+                )
+            )
+            
+            # 応答から画像を取得
+            for part in response.candidates[0].content.parts:
+                if part.text is not None:
+                    print(part.text)
+                elif part.inline_data is not None:
+                    # バイトデータからPIL Imageオブジェクトを作成
+                    image = Image.open(BytesIO(part.inline_data.data))
+                    return image, None
+            
             return None, "画像が生成されませんでした。"
+        else:
+            # その他のモデル（imagen-3.0-generate-002など）の場合は generate_images を使用
+            
+            # 画像生成の設定
+            config = types.GenerateImagesConfig(
+                number_of_images=number_of_images,
+                # 必要に応じて追加パラメータを設定
+                # aspect_ratio="1:1",
+                # resolution="1024x1024"
+            )
+            
+            # 画像生成リクエスト
+            response = client.models.generate_images(
+                model=model_name,
+                prompt=optimized_prompt,
+                config=config
+            )
+            
+            # 応答から画像を取得
+            if response.generated_images:
+                # 画像オブジェクトのリストを作成
+                images = []
+                for generated_image in response.generated_images:
+                    # バイトデータからPIL Imageオブジェクトを作成
+                    image = Image.open(BytesIO(generated_image.image.image_bytes))
+                    images.append(image)
+                
+                return images, None
+            else:
+                return None, "画像が生成されませんでした。"
     
     except Exception as e:
-        error_msg = f"Imagen APIによる画像生成中にエラーが発生しました: {str(e)}"
+        error_msg = f"画像生成中にエラーが発生しました: {str(e)}"
         print(error_msg)
         return None, error_msg
 
@@ -365,45 +352,44 @@ def call_gemini_api(
         
         # 画像生成モードが有効な場合
         if generate_image:
+            # 使用するモデルを決定
             if image_model == "gemini_native":
-                print("Gemini Native Image Generation APIを使用して画像を生成します")
-                
-                # テキストプロンプトを抽出
-                text_prompt = prompt
-                if isinstance(prompt, dict) and "role" in prompt:
-                    # 構造化されたメッセージからテキストを抽出
-                    for part in prompt.get("content", []):
-                        if isinstance(part, dict) and "text" in part:
-                            text_prompt = part["text"]
-                            break
-                
-                # Gemini Native Image Generation APIを使用して画像を生成
-                image, error = generate_image_with_gemini_native(text_prompt)
-                
-                if error:
-                    return f"画像生成エラー: {error}"
-                
-                # 画像が生成されたか確認
-                if not image:
-                    return "画像を生成できませんでした。", None
+                model_name = "gemini-2.0-flash-exp-image-generation"
+                print(f"Gemini Native Image Generation APIを使用して画像を生成します: {model_name}")
             else:
-                print("Imagen APIを使用して画像を生成します")
+                # プロバイダー情報からモデルを取得
+                provider_info = get_provider_info("gemini")
+                model_name = provider_info.get("image_model", "imagen-3.0-generate-002")
                 
+                # モデルが設定されていない場合はデフォルトを使用
+                if not model_name:
+                    model_name = "imagen-3.0-generate-002"
+                
+                print(f"Imagen APIを使用して画像を生成します: {model_name}")
+            
+            # プロンプトの準備
+            if isinstance(prompt, dict) and "role" in prompt:
                 # Gemini形式にメッセージを変換（role:systemは除外される）
                 gemini_messages = convert_messages_to_gemini_format(messages)
-                
-                # Imagen APIを使用して画像を生成（1枚のみ）
-                images, error = generate_image_with_imagen(gemini_messages, number_of_images=1)
-                
-                if error:
-                    return f"画像生成エラー: {error}"
-                
-                # 画像が生成されたか確認
-                if not images or len(images) == 0:
-                    return "画像を生成できませんでした。", None
-                
-                # 最初の画像を取得
-                image = images[0]
+                result, error = generate_image(gemini_messages, number_of_images=1, model_name=model_name)
+            else:
+                # 文字列の場合はそのまま使用
+                result, error = generate_image(prompt, number_of_images=1, model_name=model_name)
+            
+            if error:
+                return f"画像生成エラー: {error}"
+            
+            # 画像が生成されたか確認
+            if not result:
+                return "画像を生成できませんでした。", None
+            
+            # 結果が単一の画像かリストかを判断
+            if isinstance(result, list):
+                # リストの場合は最初の画像を取得
+                image = result[0]
+            else:
+                # 単一の画像の場合はそのまま使用
+                image = result
             
             # テキスト応答を生成
             # 通常のテキスト生成モード

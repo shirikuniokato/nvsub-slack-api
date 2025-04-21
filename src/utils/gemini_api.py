@@ -85,6 +85,7 @@ def generate_image(prompt: Union[str, List[Dict[str, Any]]], number_of_images: i
             )
             
             # 応答から画像を取得
+            print(response.candidates[0].content)
             for part in response.candidates[0].content.parts:
                 if part.text is not None:
                     print(part.text)

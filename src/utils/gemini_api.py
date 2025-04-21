@@ -280,7 +280,7 @@ def call_gemini_api(
     prompt: str,
     character: Optional[Dict[str, str]] = None,
     conversation_history: Optional[Any] = None,
-    generate_image: bool = False,
+    should_generate_image: bool = False,
     image_model: str = "imagen"
 ) -> Union[str, Tuple[str, Optional[Image.Image]]]:
     """
@@ -290,12 +290,12 @@ def call_gemini_api(
         prompt: ユーザーからの入力メッセージ
         character: キャラクター設定（任意）
         conversation_history: 会話履歴（任意）- 文字列、リスト、または構造化されたメッセージ
-        generate_image: 画像生成モードを有効にするかどうか（デフォルト: False）
+        should_generate_image: 画像生成モードを有効にするかどうか（デフォルト: False）
         image_model: 使用する画像生成モデル（"imagen" または "gemini_native"）（デフォルト: "imagen"）
     
     戻り値:
-        generate_image=False の場合: Gemini APIからの応答テキスト
-        generate_image=True の場合: (応答テキスト, 生成された画像) のタプル
+        should_generate_image=False の場合: Gemini APIからの応答テキスト
+        should_generate_image=True の場合: (応答テキスト, 生成された画像) のタプル
     """
     if not GOOGLE_API_KEY:
         return "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
@@ -351,7 +351,7 @@ def call_gemini_api(
         vision_model = provider_info.get("vision_model", "gemini-2.0-flash-vision")
         
         # 画像生成モードが有効な場合
-        if generate_image:
+        if should_generate_image:
             # 使用するモデルを決定
             if image_model == "gemini_native":
                 model_name = "gemini-2.0-flash-exp-image-generation"

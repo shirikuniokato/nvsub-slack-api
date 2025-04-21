@@ -120,7 +120,7 @@ def call_api(prompt, character=None, conversation_history=None, generate_image=F
         elif provider == "gemini":
             # Geminiの場合、画像生成モードをサポート
             if generate_image:
-                return call_gemini_api(prompt, character, conversation_history, generate_image=True, image_model=image_model)
+                return call_gemini_api(prompt, character, conversation_history, should_generate_image=True, image_model=image_model)
             else:
                 return call_gemini_api(prompt, character, conversation_history)
         else:  # デフォルトはGrok

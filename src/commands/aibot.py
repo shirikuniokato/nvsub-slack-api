@@ -7,7 +7,7 @@ import time
 import random
 from io import BytesIO
 from data.handlers import get_character_by_id
-from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_api_streaming as call_grok_api_streaming_original
+from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_api_streaming as call_grok_api_streaming_original, should_generate_image as grok_should_generate_image
 from utils.openai_api import call_openai_api, call_openai_api_streaming
 from utils.claude_api import call_claude_api, call_claude_api_streaming
 from utils.gemini_api import call_gemini_api, call_gemini_api_streaming, should_generate_image
@@ -123,7 +123,11 @@ def call_api(prompt, character=None, conversation_history=None, generate_image=F
             else:
                 return call_gemini_api(prompt, character, conversation_history)
         else:  # デフォルトはGrok
-            return call_grok_api_original(prompt, character, conversation_history)
+            # Grokの場合、画像生成モードをサポート
+            if generate_image:
+                return call_grok_api_original(prompt, character, conversation_history, generate_image=True)
+            else:
+                return call_grok_api_original(prompt, character, conversation_history)
     except Exception as e:
         print(f"API呼び出しエラー: {str(e)}")
         # エラーが発生した場合はGrokをデフォルトとして使用
@@ -296,6 +300,12 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
             generate_image = openai_should_generate_image(text)
             if generate_image:
                 print(f"DALL-E画像生成モードが有効になりました: {text}")
+        elif current_provider == "grok":
+            # Grokプロバイダーの場合
+            from utils.grok_api import should_generate_image as grok_should_generate_image
+            generate_image = grok_should_generate_image(text)
+            if generate_image:
+                print(f"Grok画像生成モードが有効になりました: {text}")
         
         # 最初に「考え中...」というメッセージを送信
         initial_message = "考え中..."
@@ -405,7 +415,7 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                         image.save(img_byte_arr, format='PNG')
                         img_byte_arr.seek(0)
                         
-                        # 画像をSlackに投稿
+                        # 画像をSlackに投稿（メッセージと一緒に）
                         from utils.slack_api import upload_file
                         upload_result = upload_file(
                             channels=channel,
@@ -413,7 +423,8 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                             filename="generated_image.png",
                             filetype="png",
                             thread_ts=thread_ts,
-                            title="生成された画像"
+                            title="生成された画像",
+                            initial_comment="生成された画像"
                         )
                         
                         if not upload_result.get("ok"):

@@ -431,8 +431,7 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                             filename="generated_image.png",
                             filetype="png",
                             thread_ts=thread_ts,
-                            title="",
-                            initial_comment=""
+                            title="生成された画像",
                         )
                         
                         if not upload_result.get("ok"):

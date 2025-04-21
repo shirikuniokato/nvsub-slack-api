@@ -96,25 +96,30 @@ async def get_gemini_models() -> List[str]:
     """
     try:
         api_key = os.environ.get("GEMINI_API_KEY")
-        api_base = "https://generativelanguage.googleapis.com/v1beta/models"
+        api_base = "https://generativelanguage.googleapis.com/v1beta"
         
         if not api_key:
             return ["APIキーが設定されていません"]
         
-        # 現時点ではGemini APIからモデル一覧を直接取得するのは難しいため、
-        # 一般的に利用可能なモデルを静的に返す
-        gemini_models = [
-            "gemini-1.5-pro",
-            "gemini-1.5-pro-vision",
-            "gemini-1.5-flash",
-            "gemini-1.0-pro",
-            "gemini-1.0-pro-vision"
-        ]
+        # OpenAIクライアントの初期化（Gemini APIにアクセスするため）
+        client = OpenAI(
+            api_key=api_key,
+            base_url=api_base,
+        )
         
-        return gemini_models
+        # モデル一覧を取得
+        models = client.models.list()
+        
+        # モデル名のリストを取得
+        model_names = [model.id for model in models.data]
+        
+        # Geminiモデルのみをフィルタリング
+        gemini_models = [name for name in model_names if "gemini" in name.lower()]
+        
+        return sorted(gemini_models)
     except Exception as e:
         print(f"Geminiモデル取得エラー: {str(e)}")
-        return [f"エラー: {str(e)}"]
+        return ["gemini-1.5-pro", "gemini-1.5-pro-vision", "gemini-1.5-flash", "gemini-1.0-pro", "gemini-1.0-pro-vision"]
 
 async def get_available_models(provider: str = None) -> Dict[str, List[str]]:
     """

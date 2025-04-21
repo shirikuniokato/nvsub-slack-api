@@ -195,10 +195,6 @@ def convert_messages_to_gemini_format(messages: List[Dict[str, Any]]) -> List[Di
         role = message.get("role")
         content = message.get("content", [])
         
-        # systemロールのメッセージは除外
-        if role == "system":
-            continue
-            
         # roleの変換
         gemini_role = "user" if role == "user" else "model"
         

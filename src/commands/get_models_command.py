@@ -4,6 +4,7 @@ import os
 from openai import OpenAI
 import asyncio
 from anthropic import Anthropic
+from google import genai
 
 async def get_openai_models() -> List[str]:
     """
@@ -96,30 +97,48 @@ async def get_gemini_models() -> List[str]:
     """
     try:
         api_key = os.environ.get("GEMINI_API_KEY")
-        api_base = "https://generativelanguage.googleapis.com/v1beta"
         
         if not api_key:
             return ["APIキーが設定されていません"]
         
-        # OpenAIクライアントの初期化（Gemini APIにアクセスするため）
-        client = OpenAI(
-            api_key=api_key,
-            base_url=api_base,
-        )
+        # Gemini APIクライアントの初期化
+        genai.configure(api_key=api_key)
+        client = genai.Client()
         
-        # モデル一覧を取得
-        models = client.models.list()
-        
-        # モデル名のリストを取得
-        model_names = [model.id for model in models.data]
+        # 利用可能なモデルを取得
+        models = client.list_models()
         
         # Geminiモデルのみをフィルタリング
-        gemini_models = [name for name in model_names if "gemini" in name.lower()]
+        gemini_models = [model.name.split("/")[-1] for model in models if "gemini" in model.name.lower()]
         
-        return sorted(gemini_models)
+        # モデルが取得できない場合は、環境変数から取得
+        if not gemini_models:
+            default_model = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
+            vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-1.5-pro-vision")
+            gemini_models = [
+                default_model,
+                vision_model,
+                "gemini-1.5-flash",
+                "gemini-1.0-pro",
+                "gemini-1.0-pro-vision"
+            ]
+        
+        # 重複を削除して並べ替え
+        return sorted(list(set(gemini_models)))
     except Exception as e:
         print(f"Geminiモデル取得エラー: {str(e)}")
-        return ["gemini-1.5-pro", "gemini-1.5-pro-vision", "gemini-1.5-flash", "gemini-1.0-pro", "gemini-1.0-pro-vision"]
+        # エラーが発生した場合は、環境変数から取得
+        default_model = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
+        vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-1.5-pro-vision")
+        gemini_models = [
+            default_model,
+            vision_model,
+            "gemini-1.5-flash",
+            "gemini-1.0-pro",
+            "gemini-1.0-pro-vision"
+        ]
+        # 重複を削除して並べ替え
+        return sorted(list(set(gemini_models)))
 
 async def get_available_models(provider: str = None) -> Dict[str, List[str]]:
     """

@@ -1,10 +1,13 @@
 import os
-from typing import Dict, Any, Optional, Generator, Callable
-from openai import OpenAI
+from typing import Dict, Any, Optional, Generator, Callable, List
+from google import genai
 from utils.ai_provider import get_provider_info
 
 # Gemini APIのAPIキー（環境変数から取得）
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+# Gemini APIクライアントの初期化
+genai.configure(api_key=GEMINI_API_KEY)
 
 def contains_image(messages: list) -> bool:
     """
@@ -22,6 +25,69 @@ def contains_image(messages: list) -> bool:
                 if item.get("type") == "image_url":
                     return True
     return False
+
+def convert_messages_to_gemini_format(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    OpenAI形式のメッセージをGemini形式に変換する関数
+    
+    引数:
+        messages: OpenAI形式のメッセージリスト
+    
+    戻り値:
+        Gemini形式のメッセージリスト
+    """
+    gemini_messages = []
+    
+    for message in messages:
+        role = message.get("role")
+        content = message.get("content", [])
+        
+        # roleの変換（systemはGeminiではmodelとして扱う）
+        gemini_role = "user" if role == "user" else "model"
+        
+        # contentの変換
+        gemini_parts = []
+        
+        if isinstance(content, str):
+            # 文字列の場合は単純にテキストとして追加
+            gemini_parts.append({"text": content})
+        elif isinstance(content, list):
+            # リストの場合は各アイテムを変換
+            for item in content:
+                if isinstance(item, str):
+                    gemini_parts.append({"text": item})
+                elif isinstance(item, dict):
+                    if item.get("type") == "text":
+                        gemini_parts.append({"text": item.get("text", "")})
+                    elif item.get("type") == "image_url":
+                        image_url = item.get("image_url", {}).get("url", "")
+                        if image_url.startswith("data:"):
+                            # Base64エンコードされた画像
+                            mime_type = image_url.split(";")[0].split(":")[1]
+                            base64_data = image_url.split(",")[1]
+                            gemini_parts.append({
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": base64_data
+                                }
+                            })
+                        else:
+                            # 通常のURL
+                            gemini_parts.append({
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": image_url
+                                }
+                            })
+        
+        # メッセージを追加
+        if gemini_parts:
+            gemini_messages.append({
+                "role": gemini_role,
+                "parts": gemini_parts
+            })
+    
+    return gemini_messages
 
 def call_gemini_api(
     prompt: str,
@@ -42,13 +108,10 @@ def call_gemini_api(
     if not GEMINI_API_KEY:
         return "Gemini APIキーが設定されていません。環境変数GEMINI_API_KEYを設定してください。"
     
-    # OpenAIクライアントの初期化（Gemini APIにアクセスするため）
-    client = OpenAI(
-        api_key=GEMINI_API_KEY,
-        base_url="https://generativelanguage.googleapis.com/v1beta/models",  # Gemini API エンドポイント
-    )
+    # Geminiクライアントの初期化
+    client = genai.Client()
     
-    # メッセージの作成
+    # メッセージの作成（OpenAI形式）
     messages = []
     
     # キャラクター設定がある場合はシステムメッセージを作成
@@ -97,18 +160,23 @@ def call_gemini_api(
         vision_model = provider_info.get("vision_model", "gemini-1.5-pro-vision")
         
         # 使用するモデルを選択
-        model = vision_model if has_image else default_model
-        print(f"使用するモデル: {model} (画像あり: {has_image})")
+        model_name = vision_model if has_image else default_model
+        print(f"使用するモデル: {model_name} (画像あり: {has_image})")
         
-        # APIリクエスト
-        completion = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=1.0,  # 応答の多様性（0.0〜1.0）
-        )
+        # Gemini形式にメッセージを変換
+        gemini_messages = convert_messages_to_gemini_format(messages)
+        
+        # モデルを取得
+        model = client.get_model(model_name)
+        
+        # チャット開始
+        chat = model.start_chat(history=[])
+        
+        # メッセージを送信
+        response = chat.send_message(gemini_messages)
         
         # 応答テキストの取得
-        return completion.choices[0].message.content
+        return response.text
     
     except Exception as e:
         return f"Gemini APIへのリクエスト中にエラーが発生しました: {str(e)}"
@@ -140,13 +208,10 @@ def call_gemini_api_streaming(
         yield error_msg
         return
     
-    # OpenAIクライアントの初期化（Gemini APIにアクセスするため）
-    client = OpenAI(
-        api_key=GEMINI_API_KEY,
-        base_url="https://generativelanguage.googleapis.com/v1beta/models",  # Gemini API エンドポイント
-    )
+    # Geminiクライアントの初期化
+    client = genai.Client()
     
-    # メッセージの作成
+    # メッセージの作成（OpenAI形式）
     messages = []
     
     # キャラクター設定がある場合はシステムメッセージを作成
@@ -195,21 +260,25 @@ def call_gemini_api_streaming(
         vision_model = provider_info.get("vision_model", "gemini-1.5-pro-vision")
         
         # 使用するモデルを選択
-        model = vision_model if has_image else default_model
-        print(f"使用するモデル: {model} (画像あり: {has_image})")
+        model_name = vision_model if has_image else default_model
+        print(f"使用するモデル: {model_name} (画像あり: {has_image})")
         
-        # ストリーミングモードでAPIリクエスト
-        stream = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=1.0,  # 応答の多様性（0.0〜1.0）
-            stream=True,  # ストリーミングモードを有効化
-        )
+        # Gemini形式にメッセージを変換
+        gemini_messages = convert_messages_to_gemini_format(messages)
+        
+        # モデルを取得
+        model = client.get_model(model_name)
+        
+        # チャット開始
+        chat = model.start_chat(history=[])
+        
+        # ストリーミングモードでメッセージを送信
+        response = chat.send_message(gemini_messages, stream=True)
         
         # 応答を逐次処理
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                content = chunk.choices[0].delta.content
+        for chunk in response:
+            if chunk.text:
+                content = chunk.text
                 if callback:
                     # 完了フラグはFalse（まだストリーミング中）
                     callback(content, False)

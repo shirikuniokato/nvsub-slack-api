@@ -5,11 +5,12 @@ import os
 import asyncio
 import time
 import random
+from io import BytesIO
 from data.handlers import get_character_by_id
 from utils.grok_api import call_grok_api as call_grok_api_original, call_grok_api_streaming as call_grok_api_streaming_original
 from utils.openai_api import call_openai_api, call_openai_api_streaming
 from utils.claude_api import call_claude_api, call_claude_api_streaming
-from utils.gemini_api import call_gemini_api, call_gemini_api_streaming
+from utils.gemini_api import call_gemini_api, call_gemini_api_streaming, should_generate_image
 from utils.ai_provider import get_current_provider
 from utils.slack_api import post_message, get_thread_messages, update_message, download_and_convert_image, download_and_convert_pdf
 
@@ -90,9 +91,19 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     return {"ok": True}
 
 # プロバイダーに基づいてAPIを呼び出す関数
-def call_api(prompt, character=None, conversation_history=None):
+def call_api(prompt, character=None, conversation_history=None, generate_image=False):
     """
     現在の設定に基づいて適切なAI APIを呼び出す関数
+    
+    引数:
+        prompt: ユーザーからの入力メッセージ
+        character: キャラクター設定（任意）
+        conversation_history: 会話履歴（任意）
+        generate_image: 画像生成モードを有効にするかどうか（デフォルト: False）
+    
+    戻り値:
+        generate_image=False の場合: AIからの応答テキスト
+        generate_image=True の場合: (応答テキスト, 生成された画像) のタプル（Geminiの場合のみ）
     """
     try:
         provider = get_current_provider()
@@ -102,7 +113,11 @@ def call_api(prompt, character=None, conversation_history=None):
         elif provider == "claude":
             return call_claude_api(prompt, character, conversation_history)
         elif provider == "gemini":
-            return call_gemini_api(prompt, character, conversation_history)
+            # Geminiの場合、画像生成モードをサポート
+            if generate_image:
+                return call_gemini_api(prompt, character, conversation_history, generate_image=True)
+            else:
+                return call_gemini_api(prompt, character, conversation_history)
         else:  # デフォルトはGrok
             return call_grok_api_original(prompt, character, conversation_history)
     except Exception as e:
@@ -261,6 +276,16 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
             "content": [{"type": "text", "text": text}]
         }
         
+        # 画像生成が必要かどうかを判定（Geminiプロバイダーの場合のみ）
+        generate_image = False
+        current_provider = get_current_provider()
+        
+        if current_provider == "gemini":
+            # メッセージが画像生成を要求しているかどうかを判定
+            generate_image = should_generate_image(text)
+            if generate_image:
+                print(f"画像生成モードが有効になりました: {text}")
+        
         # 最初に「考え中...」というメッセージを送信
         initial_message = "考え中..."
         initial_result = post_message(channel, initial_message, thread_ts)
@@ -342,10 +367,61 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                 # 最終更新時間を更新
                 last_update_time = current_time
         
-        # ストリーミングモードでAI APIを呼び出し
-        for _ in call_api_streaming(user_message, character, conversation_messages, streaming_callback):
-            # ジェネレーターを消費するだけで、実際の処理はコールバック関数で行う
-            pass
+        # 画像生成モードが有効な場合は非ストリーミングモードで呼び出し
+        if generate_image:
+            print("画像生成モードで呼び出します")
+            
+            # 非ストリーミングモードでAI APIを呼び出し
+            result = call_api(user_message, character, conversation_messages, generate_image=True)
+            
+            # 結果の処理
+            if isinstance(result, tuple) and len(result) == 2:
+                text_response, image = result
+                
+                # テキスト応答を更新
+                update_result = update_message(channel, message_ts, text_response)
+                
+                if not update_result.get("ok"):
+                    print(f"メッセージ更新エラー: {update_result.get('error')}")
+                
+                # 画像がある場合は処理
+                if image:
+                    print("生成された画像をSlackに投稿します")
+                    
+                    try:
+                        # 画像をバイトストリームに変換
+                        img_byte_arr = BytesIO()
+                        image.save(img_byte_arr, format='PNG')
+                        img_byte_arr.seek(0)
+                        
+                        # 画像をSlackに投稿
+                        from utils.slack_api import upload_file
+                        upload_result = upload_file(
+                            channels=channel,
+                            file=img_byte_arr,
+                            filename="generated_image.png",
+                            filetype="png",
+                            thread_ts=thread_ts,
+                            title="生成された画像"
+                        )
+                        
+                        if not upload_result.get("ok"):
+                            print(f"画像アップロードエラー: {upload_result.get('error')}")
+                    except Exception as e:
+                        print(f"画像処理エラー: {str(e)}")
+                        # エラーメッセージを投稿
+                        post_message(channel, f"画像の処理中にエラーが発生しました: {str(e)}", thread_ts)
+            else:
+                # エラーメッセージの場合
+                update_result = update_message(channel, message_ts, result)
+                
+                if not update_result.get("ok"):
+                    print(f"メッセージ更新エラー: {update_result.get('error')}")
+        else:
+            # 通常のストリーミングモードで呼び出し
+            for _ in call_api_streaming(user_message, character, conversation_messages, streaming_callback):
+                # ジェネレーターを消費するだけで、実際の処理はコールバック関数で行う
+                pass
         
     except Exception as e:
         print(f"メッセージ処理エラー: {str(e)}")

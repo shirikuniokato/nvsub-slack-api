@@ -18,6 +18,7 @@ async def nai_command(
     /nai -s openai        - プロバイダーをOpenAIに設定
     /nai -m gpt-4o        - 現在のプロバイダーのモデルを設定
     /nai -m gpt-4o -t vision - 現在のプロバイダーのビジョンモデルを設定
+    /nai -m imagen-3.0-generate-002 -t image - 現在のプロバイダーの画像生成モデルを設定
     /nai -h               - ヘルプを表示
     
     引数:
@@ -49,6 +50,7 @@ async def nai_command(
                         "`/nai -s gemini` - プロバイダーをGeminiに設定\n"
                         "`/nai -m gpt-4o` - 現在のプロバイダーのモデルを設定\n"
                         "`/nai -m gpt-4o -t vision` - 現在のプロバイダーのビジョンモデルを設定\n"
+                        "`/nai -m imagen-3.0-generate-002 -t image` - 現在のプロバイダーの画像生成モデルを設定\n"
                         "`/nai -h` - このヘルプを表示"
             }
         
@@ -67,11 +69,11 @@ async def nai_command(
                     if len(args) > type_index + 1:
                         model_type = args[type_index + 1].lower()
                         
-                        if model_type not in ["default", "vision"]:
+                        if model_type not in ["default", "vision", "image"]:
                             return {
                                 "response_type": "ephemeral",
                                 "text": f"エラー: 無効なモデルタイプ '{model_type}'\n"
-                                        "有効なモデルタイプ: default, vision"
+                                        "有効なモデルタイプ: default, vision, image"
                             }
                 
                 # 現在のプロバイダーを取得
@@ -83,7 +85,13 @@ async def nai_command(
                 if success:
                     provider_info = get_provider_info(provider)
                     provider_name = provider_info.get("name", provider.capitalize())
-                    model_type_name = "デフォルト" if model_type == "default" else "ビジョン"
+                    
+                    if model_type == "default":
+                        model_type_name = "デフォルト"
+                    elif model_type == "vision":
+                        model_type_name = "ビジョン"
+                    else:  # image
+                        model_type_name = "画像生成"
                     
                     return {
                         "response_type": "in_channel",
@@ -98,7 +106,7 @@ async def nai_command(
                 return {
                     "response_type": "ephemeral",
                     "text": "エラー: -m オプションにはモデル名が必要です。\n"
-                            "例: `/nai -m gpt-4o`"
+                            "例: `/nai -m gpt-4o` または `/nai -m imagen-3.0-generate-002 -t image`"
                 }
         
         # プロバイダーを設定
@@ -146,16 +154,21 @@ async def nai_command(
         provider_desc = provider_info.get("description", "")
         default_model = provider_info.get("default_model", "")
         vision_model = provider_info.get("vision_model", "")
+        image_model = provider_info.get("image_model", "")
+        
+        # 画像生成モデルの表示テキスト
+        image_model_text = f"使用モデル(画像生成): {image_model}\n" if image_model else ""
         
         return {
             "response_type": "in_channel",
             "text": f"現在の野良猫AIプロバイダー: *{provider_name}* ({provider_desc})\n"
                     f"使用モデル: {default_model}\n"
-                    f"使用モデル(画像解析): {vision_model}\n\n"
+                    f"使用モデル(画像解析): {vision_model}\n"
+                    f"{image_model_text}\n"
                     "プロバイダーを変更するには:\n"
                     "`/nai -s grok` または `/nai -s openai` または `/nai -s claude` または `/nai -s gemini`\n\n"
                     "モデルを変更するには:\n"
-                    "`/nai -m <モデル名>` または `/nai -m <モデル名> -t vision`"
+                    "`/nai -m <モデル名>` または `/nai -m <モデル名> -t vision` または `/nai -m <モデル名> -t image`"
         }
     
     except Exception as e:

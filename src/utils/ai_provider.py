@@ -12,7 +12,7 @@ def get_model_from_env(provider: str, model_type: str = "default") -> str:
     
     引数:
         provider: プロバイダー名 ("grok", "openai", "claude", または "gemini")
-        model_type: モデルタイプ ("default" または "vision")
+        model_type: モデルタイプ ("default", "vision", または "image_generation")
     
     戻り値:
         モデル名（環境変数が設定されていない場合はデフォルト値）
@@ -21,19 +21,23 @@ def get_model_from_env(provider: str, model_type: str = "default") -> str:
     env_var_mapping = {
         "grok": {
             "default": "GROK_API_MODEL",
-            "vision": "GROK_VISION_MODEL"
+            "vision": "GROK_VISION_MODEL",
+            "image": "GROK_IMAGE_GENERATION_MODEL"
         },
         "openai": {
             "default": "OPENAI_MODEL",
-            "vision": "OPENAI_VISION_MODEL"
+            "vision": "OPENAI_VISION_MODEL",
+            "image": "OPENAI_IMAGE_GENERATION_MODEL"
         },
         "claude": {
             "default": "CLAUDE_MODEL",
-            "vision": "CLAUDE_VISION_MODEL"
+            "vision": "CLAUDE_VISION_MODEL",
+            "image": "CLAUDE_IMAGE_GENERATION_MODEL"
         },
         "gemini": {
             "default": "GEMINI_MODEL",
-            "vision": "GEMINI_VISION_MODEL"
+            "vision": "GEMINI_VISION_MODEL",
+            "image": "GEMINI_IMAGE_GENERATION_MODEL"
         }
     }
     
@@ -53,19 +57,23 @@ def get_model_from_env(provider: str, model_type: str = "default") -> str:
         defaults = {
             "grok": {
                 "default": "grok-3-latest",
-                "vision": "grok-2-vision-latest"
+                "vision": "grok-2-vision-latest",
+                "image": ""
             },
             "openai": {
                 "default": "gpt-4o",
-                "vision": "gpt-4o"
+                "vision": "gpt-4o",
+                "image": "dall-e-3"
             },
             "claude": {
                 "default": "claude-3-opus-20240229",
-                "vision": "claude-3-opus-20240229"
+                "vision": "claude-3-opus-20240229",
+                "image": ""
             },
             "gemini": {
                 "default": "gemini-1.5-pro",
-                "vision": "gemini-1.5-pro-vision"
+                "vision": "gemini-1.5-pro-vision",
+                "image": "imagen-3.0-generate-002"
             }
         }
         
@@ -89,28 +97,32 @@ def get_default_config() -> Dict[str, Any]:
                 "value": "grok",
                 "description": "Grok AI (X.AI)",
                 "default_model": "grok-3-latest",
-                "vision_model": "grok-2-vision-latest"
+                "vision_model": "grok-2-vision-latest",
+                "image_model": ""
             },
             "openai": {
                 "name": "OpenAI",
                 "value": "openai",
                 "description": "OpenAI GPT",
                 "default_model": "gpt-4.1",
-                "vision_model": "gpt-4.1"
+                "vision_model": "gpt-4.1",
+                "image_model": "dall-e-3"
             },
             "claude": {
                 "name": "Claude",
                 "value": "claude",
                 "description": "Anthropic Claude",
                 "default_model": "claude-3-opus-20240229",
-                "vision_model": "claude-3-opus-20240229"
+                "vision_model": "claude-3-opus-20240229",
+                "image_model": ""
             },
             "gemini": {
                 "name": "Gemini",
                 "value": "gemini",
                 "description": "Google Gemini",
                 "default_model": "gemini-1.5-pro",
-                "vision_model": "gemini-1.5-pro-vision"
+                "vision_model": "gemini-1.5-pro-vision",
+                "image_model": "imagen-3.0-generate-002"
             }
         }
     }
@@ -221,6 +233,8 @@ def get_provider_info(provider: Optional[str] = None) -> Dict[str, Any]:
         provider_info["default_model"] = get_model_from_env(provider, "default")
     if not provider_info.get("vision_model"):
         provider_info["vision_model"] = get_model_from_env(provider, "vision")
+    if not provider_info.get("image_model"):
+        provider_info["image_model"] = get_model_from_env(provider, "image")
     
     return provider_info
 
@@ -231,7 +245,7 @@ def set_model(provider: str, model: str, model_type: str = "default") -> bool:
     引数:
         provider: プロバイダー名 ("grok", "openai", "claude", または "gemini")
         model: 設定するモデル名
-        model_type: モデルタイプ ("default" または "vision")
+        model_type: モデルタイプ ("default", "vision", または "image_generation")
     
     戻り値:
         設定に成功した場合はTrue、失敗した場合はFalse
@@ -241,7 +255,7 @@ def set_model(provider: str, model: str, model_type: str = "default") -> bool:
             print(f"無効なプロバイダー名: {provider}")
             return False
         
-        if model_type not in ["default", "vision"]:
+        if model_type not in ["default", "vision", "image"]:
             print(f"無効なモデルタイプ: {model_type}")
             return False
         
@@ -249,7 +263,12 @@ def set_model(provider: str, model: str, model_type: str = "default") -> bool:
         config = load_config()
         
         # モデルタイプに応じたキー名を設定
-        model_key = "default_model" if model_type == "default" else "vision_model"
+        if model_type == "default":
+            model_key = "default_model"
+        elif model_type == "vision":
+            model_key = "vision_model"
+        else:  # image
+            model_key = "image_model"
         
         # モデルを設定
         if provider in config["providers"]:

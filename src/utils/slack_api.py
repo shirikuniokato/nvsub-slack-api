@@ -389,3 +389,73 @@ def update_modal(
         return {"ok": False, "error": f"JSONパースエラー: {str(e)}"}
     except Exception as e:
         return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}
+
+def upload_file(
+    channels: str,
+    file: Any,
+    filename: str = "file",
+    filetype: str = "auto",
+    thread_ts: Optional[str] = None,
+    title: Optional[str] = None,
+    initial_comment: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Slackにファイルをアップロードする関数
+    
+    引数:
+        channels: チャンネルID（カンマ区切りで複数指定可能）
+        file: アップロードするファイル（ファイルパス、バイトデータ、またはファイルオブジェクト）
+        filename: ファイル名（デフォルト: "file"）
+        filetype: ファイルタイプ（デフォルト: "auto"）
+        thread_ts: スレッドのタイムスタンプ（スレッド内の返信の場合）
+        title: ファイルのタイトル
+        initial_comment: ファイルと一緒に投稿するコメント
+    
+    戻り値:
+        Slackからのレスポンス
+    """
+    if not SLACK_BOT_TOKEN:
+        return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
+    
+    # APIエンドポイント
+    url = "https://slack.com/api/files.upload"
+    
+    # リクエストヘッダー
+    headers = {
+        "Authorization": f"Bearer {SLACK_BOT_TOKEN}"
+    }
+    
+    # リクエストデータ
+    data = {
+        "channels": channels,
+        "filename": filename,
+        "filetype": filetype
+    }
+    
+    # オプションパラメータの追加
+    if thread_ts:
+        data["thread_ts"] = thread_ts
+    if title:
+        data["title"] = title
+    if initial_comment:
+        data["initial_comment"] = initial_comment
+    
+    try:
+        # ファイルの処理
+        files = {"file": (filename, file, f"image/{filetype}" if filetype != "auto" else None)}
+        
+        # APIリクエスト
+        response = requests.post(url, headers=headers, data=data, files=files)
+        
+        # レスポンスのチェック
+        response.raise_for_status()
+        
+        # JSONレスポンスの解析
+        return response.json()
+    
+    except requests.exceptions.RequestException as e:
+        return {"ok": False, "error": f"APIリクエストエラー: {str(e)}"}
+    except ValueError as e:
+        return {"ok": False, "error": f"JSONパースエラー: {str(e)}"}
+    except Exception as e:
+        return {"ok": False, "error": f"予期せぬエラー: {str(e)}"}

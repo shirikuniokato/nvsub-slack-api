@@ -272,7 +272,7 @@ Imagen 3 プロンプトの作成に関するその他のヒント:
         
         # システムプロンプトをユーザーメッセージとして追加し、その後にuser_promptを結合
         system_message = {
-            "role": "user",
+            "role": "model",
             "parts": [{"text": system_prompt}]
         }
         messages = [system_message] + user_prompt

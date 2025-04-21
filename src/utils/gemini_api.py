@@ -11,9 +11,56 @@ from utils.imagen_prompt_generator import generate_imagen_prompt
 # Gemini APIのAPIキー（環境変数から取得）
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
+def generate_image_with_gemini_native(prompt: str) -> Tuple[Optional[Image.Image], Optional[str]]:
+    """
+    Gemini Native Image Generation APIを使用して画像を生成する関数
+    (gemini-2.0-flash-exp-image-generation モデルを使用)
+    
+    引数:
+        prompt: 画像生成のためのテキストプロンプト
+    
+    戻り値:
+        (生成された画像オブジェクト, エラーメッセージ) のタプル
+        成功時は (画像オブジェクト, None)
+        失敗時は (None, エラーメッセージ)
+    """
+    if not GOOGLE_API_KEY:
+        return None, "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
+    
+    try:
+        # Geminiクライアントの初期化
+        client = genai.Client()
+        
+        # 画像生成モデル
+        model_name = "gemini-2.0-flash-exp-image-generation"
+        
+        # 画像生成リクエスト
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_modalities=['TEXT', 'IMAGE']
+            )
+        )
+        
+        # 応答から画像を取得
+        for part in response.candidates[0].content.parts:
+            if part.inline_data is not None:
+                # バイトデータからPIL Imageオブジェクトを作成
+                image = Image.open(BytesIO(part.inline_data.data))
+                return image, None
+        
+        return None, "画像が生成されませんでした。"
+    
+    except Exception as e:
+        error_msg = f"Gemini Native Image Generation APIによる画像生成中にエラーが発生しました: {str(e)}"
+        print(error_msg)
+        return None, error_msg
+
 def generate_image_with_imagen(prompt: List[Dict[str, Any]], number_of_images: int = 1) -> Tuple[Optional[List[Image.Image]], Optional[str]]:
     """
     Imagen APIを使用して画像を生成する関数
+    (imagen-3.0-generate-002 モデルを使用)
     
     引数:
         prompt: 画像生成のための gemini_messages 形式のリスト
@@ -246,7 +293,8 @@ def call_gemini_api(
     prompt: str,
     character: Optional[Dict[str, str]] = None,
     conversation_history: Optional[Any] = None,
-    generate_image: bool = False
+    generate_image: bool = False,
+    image_model: str = "imagen"
 ) -> Union[str, Tuple[str, Optional[Image.Image]]]:
     """
     Gemini APIを呼び出して応答を取得する関数
@@ -256,6 +304,7 @@ def call_gemini_api(
         character: キャラクター設定（任意）
         conversation_history: 会話履歴（任意）- 文字列、リスト、または構造化されたメッセージ
         generate_image: 画像生成モードを有効にするかどうか（デフォルト: False）
+        image_model: 使用する画像生成モデル（"imagen" または "gemini_native"）（デフォルト: "imagen"）
     
     戻り値:
         generate_image=False の場合: Gemini APIからの応答テキスト
@@ -316,23 +365,45 @@ def call_gemini_api(
         
         # 画像生成モードが有効な場合
         if generate_image:
-            print("Imagen APIを使用して画像を生成します")
-            
-            # Gemini形式にメッセージを変換（role:systemは除外される）
-            gemini_messages = convert_messages_to_gemini_format(messages)
-            
-            # Imagen APIを使用して画像を生成（1枚のみ）
-            images, error = generate_image_with_imagen(gemini_messages, number_of_images=1)
-            
-            if error:
-                return f"画像生成エラー: {error}"
-            
-            # 画像が生成されたか確認
-            if not images or len(images) == 0:
-                return "画像を生成できませんでした。", None
-            
-            # 最初の画像を取得
-            image = images[0]
+            if image_model == "gemini_native":
+                print("Gemini Native Image Generation APIを使用して画像を生成します")
+                
+                # テキストプロンプトを抽出
+                text_prompt = prompt
+                if isinstance(prompt, dict) and "role" in prompt:
+                    # 構造化されたメッセージからテキストを抽出
+                    for part in prompt.get("content", []):
+                        if isinstance(part, dict) and "text" in part:
+                            text_prompt = part["text"]
+                            break
+                
+                # Gemini Native Image Generation APIを使用して画像を生成
+                image, error = generate_image_with_gemini_native(text_prompt)
+                
+                if error:
+                    return f"画像生成エラー: {error}"
+                
+                # 画像が生成されたか確認
+                if not image:
+                    return "画像を生成できませんでした。", None
+            else:
+                print("Imagen APIを使用して画像を生成します")
+                
+                # Gemini形式にメッセージを変換（role:systemは除外される）
+                gemini_messages = convert_messages_to_gemini_format(messages)
+                
+                # Imagen APIを使用して画像を生成（1枚のみ）
+                images, error = generate_image_with_imagen(gemini_messages, number_of_images=1)
+                
+                if error:
+                    return f"画像生成エラー: {error}"
+                
+                # 画像が生成されたか確認
+                if not images or len(images) == 0:
+                    return "画像を生成できませんでした。", None
+                
+                # 最初の画像を取得
+                image = images[0]
             
             # テキスト応答を生成
             # 通常のテキスト生成モード

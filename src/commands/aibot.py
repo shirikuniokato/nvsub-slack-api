@@ -91,7 +91,7 @@ async def app_mention_endpoint(request: Request, payload: Dict[str, Any] = Body(
     return {"ok": True}
 
 # プロバイダーに基づいてAPIを呼び出す関数
-def call_api(prompt, character=None, conversation_history=None, generate_image=False):
+def call_api(prompt, character=None, conversation_history=None, generate_image=False, image_model="imagen"):
     """
     現在の設定に基づいて適切なAI APIを呼び出す関数
     
@@ -100,6 +100,7 @@ def call_api(prompt, character=None, conversation_history=None, generate_image=F
         character: キャラクター設定（任意）
         conversation_history: 会話履歴（任意）
         generate_image: 画像生成モードを有効にするかどうか（デフォルト: False）
+        image_model: 使用する画像生成モデル（"imagen" または "gemini_native"）（デフォルト: "imagen"）
     
     戻り値:
         generate_image=False の場合: AIからの応答テキスト
@@ -119,7 +120,7 @@ def call_api(prompt, character=None, conversation_history=None, generate_image=F
         elif provider == "gemini":
             # Geminiの場合、画像生成モードをサポート
             if generate_image:
-                return call_gemini_api(prompt, character, conversation_history, generate_image=True)
+                return call_gemini_api(prompt, character, conversation_history, generate_image=True, image_model=image_model)
             else:
                 return call_gemini_api(prompt, character, conversation_history)
         else:  # デフォルトはGrok
@@ -286,14 +287,21 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
         
         # 画像生成が必要かどうかを判定
         generate_image = False
+        image_model = "imagen"  # デフォルトはImagen
         current_provider = get_current_provider()
         
         if current_provider == "gemini":
             # Geminiプロバイダーの場合
             from utils.gemini_api import should_generate_image as gemini_should_generate_image
             generate_image = gemini_should_generate_image(text)
-            if generate_image:
-                print(f"Gemini画像生成モードが有効になりました: {text}")
+            
+            # テキストに "gemini_native" または "gemini-2.0-flash-exp-image-generation" が含まれている場合は
+            # Gemini Native Image Generation APIを使用
+            if "gemini_native" in text.lower() or "gemini-2.0-flash-exp-image-generation" in text.lower():
+                image_model = "gemini_native"
+                print(f"Gemini Native画像生成モードが有効になりました: {text}")
+            else:
+                print(f"Imagen画像生成モードが有効になりました: {text}")
         elif current_provider == "openai":
             # OpenAIプロバイダーの場合
             from utils.openai_api import should_generate_image as openai_should_generate_image
@@ -393,7 +401,7 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
             print("画像生成モードで呼び出します")
             
             # 非ストリーミングモードでAI APIを呼び出し
-            result = call_api(user_message, character, conversation_messages, generate_image=True)
+            result = call_api(user_message, character, conversation_messages, generate_image=True, image_model=image_model)
             
             # 結果の処理
             if isinstance(result, tuple) and len(result) == 2:

@@ -104,21 +104,36 @@ async def get_gemini_models() -> List[str]:
         # Gemini APIクライアントの初期化
         client = genai.Client()
         
+        # generateContentをサポートするモデルを取得
+        gemini_models = []
+        
         try:
             # 新しいAPIの呼び出し方法でモデル一覧を取得
             models = client.models.list()
             
-            # モデル名のリストを取得
-            gemini_models = [model.name.split("/")[-1] for model in models.models if "gemini" in model.name.lower()]
-        except AttributeError:
-            # 古いAPIの呼び出し方法でモデル一覧を取得（互換性のため）
-            models = client.list_models()
-            
-            # Geminiモデルのみをフィルタリング
-            gemini_models = [model.name.split("/")[-1] for model in models if "gemini" in model.name.lower()]
+            # generateContentをサポートするGeminiモデルのみをフィルタリング
+            for model in models:
+                if "gemini" in model.name.lower():
+                    for action in model.supported_actions:
+                        if action == "generateContent":
+                            # モデル名から最後の部分だけを取得（例: models/gemini-1.5-pro → gemini-1.5-pro）
+                            model_name = model.name.split("/")[-1]
+                            gemini_models.append(model_name)
+                            break
+        except Exception as e:
+            print(f"新しいAPIでのモデル取得エラー: {str(e)}")
+            try:
+                # 古いAPIの呼び出し方法でモデル一覧を取得（互換性のため）
+                models = client.list_models()
+                
+                # Geminiモデルのみをフィルタリング
+                gemini_models = [model.name.split("/")[-1] for model in models if "gemini" in model.name.lower()]
+            except Exception as e2:
+                print(f"古いAPIでのモデル取得エラー: {str(e2)}")
         
         # モデルが取得できない場合は、デフォルトモデルを使用
         if not gemini_models:
+            print("モデルが取得できなかったため、デフォルトモデルを使用します")
             default_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
             vision_model = os.environ.get("GEMINI_VISION_MODEL", "gemini-2.0-flash-vision")
             gemini_models = [

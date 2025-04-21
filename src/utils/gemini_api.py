@@ -6,6 +6,7 @@ from PIL import Image
 from google import genai
 from google.genai import types
 from utils.ai_provider import get_provider_info
+from utils.imagen_prompt_generator import generate_imagen_prompt
 
 # Gemini APIのAPIキー（環境変数から取得）
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
@@ -27,6 +28,17 @@ def generate_image_with_imagen(prompt: str, number_of_images: int = 1) -> Tuple[
         return None, "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
     
     try:
+        # プロンプトを最適化
+        optimized_prompt, error = generate_imagen_prompt(prompt)
+        if error:
+            print(f"プロンプト最適化エラー: {error}")
+            print("元のプロンプトを使用します")
+            optimized_prompt = prompt
+        else:
+            print(f"プロンプトを最適化しました")
+            print(f"元のプロンプト: {prompt}")
+            print(f"最適化されたプロンプト: {optimized_prompt}")
+        
         # Geminiクライアントの初期化
         client = genai.Client()
         
@@ -52,7 +64,7 @@ def generate_image_with_imagen(prompt: str, number_of_images: int = 1) -> Tuple[
         # 画像生成リクエスト
         response = client.models.generate_images(
             model=image_model,
-            prompt=prompt,
+            prompt=optimized_prompt,
             config=config
         )
         

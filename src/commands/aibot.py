@@ -415,7 +415,7 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                         image.save(img_byte_arr, format='PNG')
                         img_byte_arr.seek(0)
                         
-                        # 画像をSlackに投稿（メッセージと一緒に）
+                        # 画像をSlackに投稿
                         from utils.slack_api import upload_file
                         upload_result = upload_file(
                             channels=channel,
@@ -423,8 +423,8 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
                             filename="generated_image.png",
                             filetype="png",
                             thread_ts=thread_ts,
-                            title="生成された画像",
-                            initial_comment="生成された画像"
+                            title="",
+                            initial_comment=""
                         )
                         
                         if not upload_result.get("ok"):

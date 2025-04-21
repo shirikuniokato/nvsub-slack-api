@@ -418,9 +418,9 @@ def upload_file(
         return {"ok": False, "error": "SLACK_BOT_TOKENが設定されていません"}
     
     # メッセージテキスト
-    message_text = title if title else "生成された画像"
+    message_text = title if title else ""
     if initial_comment:
-        message_text = f"{initial_comment}\n{message_text}"
+        message_text = f"{initial_comment}\n{message_text}" if message_text else initial_comment
     
     try:
         # 画像データを準備

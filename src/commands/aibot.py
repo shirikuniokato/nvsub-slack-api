@@ -109,7 +109,11 @@ def call_api(prompt, character=None, conversation_history=None, generate_image=F
         provider = get_current_provider()
         
         if provider == "openai":
-            return call_openai_api(prompt, character, conversation_history)
+            # OpenAIの場合、画像生成モードをサポート
+            if generate_image:
+                return call_openai_api(prompt, character, conversation_history, generate_image=True)
+            else:
+                return call_openai_api(prompt, character, conversation_history)
         elif provider == "claude":
             return call_claude_api(prompt, character, conversation_history)
         elif provider == "gemini":
@@ -276,15 +280,22 @@ async def process_and_reply(text: str, channel: str, thread_ts: str, character: 
             "content": [{"type": "text", "text": text}]
         }
         
-        # 画像生成が必要かどうかを判定（Geminiプロバイダーの場合のみ）
+        # 画像生成が必要かどうかを判定
         generate_image = False
         current_provider = get_current_provider()
         
         if current_provider == "gemini":
-            # メッセージが画像生成を要求しているかどうかを判定
-            generate_image = should_generate_image(text)
+            # Geminiプロバイダーの場合
+            from utils.gemini_api import should_generate_image as gemini_should_generate_image
+            generate_image = gemini_should_generate_image(text)
             if generate_image:
-                print(f"画像生成モードが有効になりました: {text}")
+                print(f"Gemini画像生成モードが有効になりました: {text}")
+        elif current_provider == "openai":
+            # OpenAIプロバイダーの場合
+            from utils.openai_api import should_generate_image as openai_should_generate_image
+            generate_image = openai_should_generate_image(text)
+            if generate_image:
+                print(f"DALL-E画像生成モードが有効になりました: {text}")
         
         # 最初に「考え中...」というメッセージを送信
         initial_message = "考え中..."

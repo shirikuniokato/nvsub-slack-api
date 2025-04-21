@@ -28,8 +28,8 @@ def generate_image_with_imagen(prompt: List[Dict[str, Any]], number_of_images: i
         return None, "Gemini APIキーが設定されていません。環境変数GOOGLE_API_KEYを設定してください。"
     
     try:
-        # プロンプトを最適化
-        optimized_prompt, error = generate_imagen_prompt(prompt)
+        # プロンプトを最適化（Gemini用）
+        optimized_prompt, error = generate_imagen_prompt(prompt, provider="gemini")
         if error:
             print(f"プロンプト最適化エラー: {error}")
             print("最適化に失敗したため、最後のユーザーメッセージを使用します")
